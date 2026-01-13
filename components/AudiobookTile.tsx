@@ -56,7 +56,7 @@ export const AudiobookTile: React.FC<AudiobookTileProps> = ({
   }, [isImporting, coverArt]);
 
   return (
-    <div className="group flex flex-col space-y-3 min-w-0 relative">
+    <div className={`group flex flex-col space-y-3 min-w-0 relative ${menuOpen ? 'z-50' : ''}`}>
       <div
         className={`aspect-square relative rounded-lg overflow-hidden shadow-lg transition-transform duration-300 ${onClick ? 'cursor-pointer group-hover:scale-105 group-hover:shadow-2xl' : ''}`}
         onClick={() => {
@@ -143,7 +143,7 @@ export const AudiobookTile: React.FC<AudiobookTileProps> = ({
           </Button>
 
           {menuOpen && (
-            <div className="absolute right-0 mt-2 w-44 bg-surface rounded-xl border border-white/10 shadow-xl overflow-hidden z-20">
+            <div className="absolute right-0 mt-2 w-auto min-w-[140px] whitespace-nowrap bg-surface rounded-xl border border-white/10 shadow-xl overflow-hidden z-20">
               {onRefresh && (
                 <button
                   className="w-full text-left px-3 py-2 text-sm hover:bg-white/10 flex items-center gap-2 text-white"
