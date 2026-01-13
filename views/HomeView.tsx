@@ -55,7 +55,8 @@ export function HomeView(props: {
     // Tracks are appended in upload order, so the last ones are “recent”.
     // We show a small slice to keep the UI fast and scannable.
     const list = [...tracks];
-    return list.slice(Math.max(0, list.length - 20)).reverse();
+    // Show last 100 items (reversed so newest first)
+    return list.slice(-100).reverse();
   }, [tracks]);
 
   return (

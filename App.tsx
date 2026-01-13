@@ -319,6 +319,24 @@ const App: React.FC = () => {
     }
   }, [playerState.isPlaying]);
 
+  // --- HISTORY / BACK BUTTON ---
+  useEffect(() => {
+    const handlePopState = () => {
+      // If we have a playlist selected, close it
+      if (selectedPlaylistId) {
+        setSelectedPlaylistId(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [selectedPlaylistId]);
+
+  useEffect(() => {
+    if (selectedPlaylistId) {
+      window.history.pushState({ playlistId: selectedPlaylistId }, '', '');
+    }
+  }, [selectedPlaylistId]);
+
   // Keep audio element's volume in sync with state volume.
   useEffect(() => {
     if (audioRef.current) {
@@ -1320,6 +1338,7 @@ const App: React.FC = () => {
                     : 'home') as MobileTab
               }
               onChange={(t) => {
+                if (t === 'home') setSelectedPlaylistId(null);
                 // We keep audiobooks as a separate internal tab,
                 // but map it under "Library" for navigation simplicity.
                 if (t === 'library') setActiveTab('library');
