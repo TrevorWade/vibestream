@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Home, Search, Library, PlusSquare, Upload, Music,
   Maximize2, Play, ListMusic, FolderInput, MoreVertical,
-  Volume2, ArrowUpDown, Headphones
+  Volume2, ArrowUpDown, Headphones, ArrowLeft, FolderPlus
 } from 'lucide-react';
 import { Track, PlayerState, Playlist, ShuffleMode, RepeatMode, Audiobook } from './types';
 import { APP_NAME, DEFAULT_PLAYLISTS, SAMPLE_COVER_ARTS, formatTime } from './constants';
@@ -11,7 +11,7 @@ import { PlaylistActions } from './components/PlaylistActions';
 import { PlayerControls } from './components/PlayerControls';
 import { FullPlayer } from './components/FullPlayer';
 import { QueueDrawer } from './components/QueueDrawer';
-import { AudiobookLibrary } from './components/AudiobookLibrary';
+import { AudiobookLibrary, type AudiobookLibraryHandle } from './components/AudiobookLibrary';
 import { AudiobookPlayer } from './components/AudiobookPlayer';
 import { AudiobookMiniPlayer } from './components/AudiobookMiniPlayer';
 import { AppShell } from './components/AppShell';
@@ -199,12 +199,15 @@ const App: React.FC = () => {
     baseQueueIndex: 0,
   });
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audiobookAudioRef = useRef<HTMLAudioElement | null>(null);
+  /* --- REFS --- */
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const audiobookAudioRef = useRef<HTMLAudioElement>(null);
   const lastAudiobookPersistRef = useRef<number>(0);
   const activeBookRef = useRef<Audiobook | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const audiobookLibraryRef = useRef<AudiobookLibraryHandle>(null);
+
 
   const playerStateRef = useRef(playerState);
   const tracksRef = useRef(tracks);
@@ -1113,14 +1116,16 @@ const App: React.FC = () => {
       )}
 
       {activeTab === 'audiobooks' && (
-        <AudiobookLibrary onSelectBook={(book) => {
-          // Pause music player if it's playing
-          setPlayerState(prev => ({ ...prev, isPlaying: false }));
-          setActiveBook(book);
-          setIsAudiobookExpanded(true);
-          // Save as last played book for auto-reload
-          saveLastPlayedBook(book.id).catch(() => { });
-        }} />
+        <AudiobookLibrary
+          ref={audiobookLibraryRef}
+          onSelectBook={(book) => {
+            // Pause music player if it's playing
+            setPlayerState(prev => ({ ...prev, isPlaying: false }));
+            setActiveBook(book);
+            setIsAudiobookExpanded(true);
+            // Save as last played book for auto-reload
+            saveLastPlayedBook(book.id).catch(() => { });
+          }} />
       )}
     </>
   );
@@ -1197,7 +1202,7 @@ const App: React.FC = () => {
 
         if (cancelled) return;
         // Clamp saved position once duration is known.
-        const dur = Number.isFinite(a.duration) && a.duration > 0 ? a.duration : Infinity;
+        const dur = Number.isFinite(a.duration) ? a.duration : (activeBook.duration || Infinity);
         const next = Math.max(0, Math.min(savedPos || 0, dur));
         a.currentTime = next;
         setAudiobookProgress(next);
@@ -1266,18 +1271,33 @@ const App: React.FC = () => {
                 : activeTab === 'search'
                   ? 'Search'
                   : activeTab === 'audiobooks'
-                    ? 'Audiobooks'
+                    ? (
+                      <div className="flex items-center gap-2" onClick={() => setActiveTab('home')}>
+                        <ArrowLeft size={24} />
+                        <span>Library</span>
+                      </div>
+                    )
                     : 'Your Library'
             }
             right={
-              <button
-                type="button"
-                className="w-9 h-9 rounded-full bg-surfaceElevated hover:bg-surfaceHighlight transition-colors flex items-center justify-center"
-                onClick={() => folderInputRef.current?.click()}
-                title="Import folder"
-              >
-                <FolderInput size={18} />
-              </button>
+              activeTab === 'audiobooks' ? (
+                <button
+                  onClick={() => audiobookLibraryRef.current?.triggerImport()}
+                  className="bg-[#00c2cb] text-black px-4 py-2 rounded-full font-bold text-xs flex items-center gap-2 hover:bg-[#00c2cb]/90 transition-colors"
+                >
+                  <FolderPlus size={16} />
+                  Import Folder
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="w-9 h-9 rounded-full bg-surfaceElevated hover:bg-surfaceHighlight transition-colors flex items-center justify-center"
+                  onClick={() => folderInputRef.current?.click()}
+                  title="Import folder"
+                >
+                  <FolderInput size={18} />
+                </button>
+              )
             }
           />
         }
