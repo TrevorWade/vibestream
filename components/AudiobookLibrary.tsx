@@ -3,6 +3,7 @@ import { FolderPlus, BookOpen } from 'lucide-react';
 import { Audiobook } from '../types';
 import { Button } from './Button';
 import { AudiobookTile } from './AudiobookTile';
+import { ConfirmModal } from './ConfirmModal';
 import {
   getAllAudiobooks,
   extractMetadata,
@@ -42,6 +43,8 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
   const [importItems, setImportItems] = useState<ImportItem[]>([]);
   const [hasAttemptedAutoLoad, setHasAttemptedAutoLoad] = useState(false);
   const [booksNeedingRefresh, setBooksNeedingRefresh] = useState<Set<string>>(new Set());
+  const [removeBookTarget, setRemoveBookTarget] = useState<Audiobook | null>(null);
+  const [deleteData, setDeleteData] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -132,28 +135,31 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
     setPositions(prev => ({ ...prev, ...posMap }));
   };
 
-  const handleRemoveBook = async (book: Audiobook) => {
-    // Minimal-risk prompt flow:
-    // 1) Confirm removal
-    // 2) Ask whether to keep progress/bookmarks or fully delete
-    const okRemove = window.confirm(`Remove \"${book.title}\" from your library?`);
-    if (!okRemove) return;
+  const handleRemoveBook = (book: Audiobook) => {
+    setRemoveBookTarget(book);
+    setDeleteData(false); // Default to safely keeping data
+  };
 
-    const keepState = window.confirm(
-      'Keep listening progress + bookmarks?\n\nOK = Keep\nCancel = Delete everything'
-    );
+  const confirmRemove = async () => {
+    if (!removeBookTarget) return;
+    const book = removeBookTarget;
 
     try {
       await deleteAudiobook(book.id);
-      if (!keepState) {
+      if (deleteData) {
         await deleteAudiobookState(book.id);
       }
       // Always remove the saved directory handle reference
       await removeAudiobookSource(book.id);
+
+      // Explicitly remove from local state to update UI immediately
+      setBooks(prev => prev.filter(b => b.id !== book.id));
     } catch (e) {
       console.error('Remove failed', e);
     } finally {
+      // We still reload to ensure sync, but the setBooks above handles the immediate UI feedback
       await loadBooks();
+      setRemoveBookTarget(null);
     }
   };
 
@@ -181,8 +187,8 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
       // Get existing metadata
       const existingMetadata = books.find(b => b.id === bookId);
 
-      // Rebuild the audiobook
-      const refreshedBook = await rebuildAudiobookFromHandle(source, existingMetadata);
+      // Rebuild the audiobook (force re-extraction of chapters)
+      const refreshedBook = await rebuildAudiobookFromHandle(source, { ...existingMetadata, chapters: [] });
 
       // Update the book in the list
       setBooks(prev => {
@@ -534,6 +540,31 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
           ))}
         </div>
       )}
+
+
+      <ConfirmModal
+        isOpen={!!removeBookTarget}
+        title="Remove from Library?"
+        message={`Are you sure you want to remove "${removeBookTarget?.title || 'this book'}"?`}
+        confirmLabel="Remove"
+        isDestructive={true}
+        onConfirm={confirmRemove}
+        onCancel={() => setRemoveBookTarget(null)}
+      >
+        <div className="mt-4 flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
+          <input
+            type="checkbox"
+            id="delete-data-checkbox"
+            checked={deleteData}
+            onChange={(e) => setDeleteData(e.target.checked)}
+            className="mt-1 w-4 h-4 rounded border-white/20 bg-black/50 text-primary focus:ring-primary focus:ring-offset-0"
+          />
+          <label htmlFor="delete-data-checkbox" className="text-sm text-textSub cursor-pointer select-none">
+            <span className="text-textMain font-medium block mb-0.5">Also delete listening history</span>
+            Check this to remove bookmarks and playback progress. If unchecked, they will be restored if you import this book again.
+          </label>
+        </div>
+      </ConfirmModal>
     </div>
   );
 };

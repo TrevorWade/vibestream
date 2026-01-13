@@ -159,8 +159,9 @@ export const AudiobookTile: React.FC<AudiobookTileProps> = ({
                 <button
                   className="w-full text-left px-3 py-2 text-sm hover:bg-white/10 flex items-center gap-2 text-red-300"
                   onClick={() => {
-                    setMenuOpen(false);
+                    console.log('Remove clicked inside tile');
                     onRemove?.();
+                    setMenuOpen(false);
                   }}
                 >
                   <Trash2 size={16} />
