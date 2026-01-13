@@ -1115,7 +1115,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'audiobooks' && (
+      <div className={activeTab === 'audiobooks' ? 'h-full' : 'hidden'}>
         <AudiobookLibrary
           ref={audiobookLibraryRef}
           onSelectBook={(book) => {
@@ -1126,7 +1126,7 @@ const App: React.FC = () => {
             // Save as last played book for auto-reload
             saveLastPlayedBook(book.id).catch(() => { });
           }} />
-      )}
+      </div>
     </>
   );
 
@@ -1222,6 +1222,13 @@ const App: React.FC = () => {
     if (!a) return;
     a.playbackRate = audiobookSpeed;
   }, [audiobookSpeed]);
+
+  // Sync volume for audiobook
+  useEffect(() => {
+    const a = audiobookAudioRef.current;
+    if (!a) return;
+    a.volume = playerState.volume;
+  }, [playerState.volume]);
 
   const audiobookTogglePlay = () => {
     const a = audiobookAudioRef.current;
@@ -1974,9 +1981,15 @@ const App: React.FC = () => {
             progress={audiobookProgress}
             onTogglePlay={audiobookTogglePlay}
             onJump={audiobookJump}
-            onSeek={seek}
+            onSeek={audiobookSeek}
             onExpand={() => setIsAudiobookExpanded(true)}
             onStop={audiobookStop}
+            volume={playerState.volume}
+            onVolumeChange={(v) => {
+              setPlayerState(prev => ({ ...prev, volume: v }));
+              if (audioRef.current) audioRef.current.volume = v;
+              if (audiobookAudioRef.current) audiobookAudioRef.current.volume = v;
+            }}
           />
         </div>
       )}

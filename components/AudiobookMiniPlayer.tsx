@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RotateCcw, RotateCw, Play, Pause, Maximize2, X } from 'lucide-react';
+import { RotateCcw, RotateCw, Play, Pause, Maximize2, X, Volume2 } from 'lucide-react';
 import { Audiobook } from '../types';
 import { Button } from './Button';
 import { formatTime } from '../constants';
@@ -13,6 +13,8 @@ interface AudiobookMiniPlayerProps {
   onSeek: (time: number) => void;
   onExpand: () => void;
   onStop: () => void;
+  volume?: number;
+  onVolumeChange?: (volume: number) => void;
 }
 
 /**
@@ -28,6 +30,8 @@ export const AudiobookMiniPlayer: React.FC<AudiobookMiniPlayerProps> = ({
   onSeek,
   onExpand,
   onStop,
+  volume = 1,
+  onVolumeChange,
 }) => {
   const durationKnown = typeof book.duration === 'number' && Number.isFinite(book.duration) && book.duration > 0;
   const pct = durationKnown ? Math.max(0, Math.min(100, (Math.max(0, Math.min(progress, book.duration)) / book.duration) * 100)) : 0;
@@ -129,7 +133,22 @@ export const AudiobookMiniPlayer: React.FC<AudiobookMiniPlayerProps> = ({
         </div>
 
         {/* Right: actions */}
-        <div className="w-1/3 flex justify-end items-center gap-2">
+        <div className="w-1/3 flex justify-end items-center gap-3">
+          {/* Volume */}
+          {onVolumeChange && (
+            <div className="flex items-center gap-2 min-w-[120px]">
+              <Volume2 size={18} className="text-textSub" />
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={volume}
+                onChange={(e) => onVolumeChange(Number(e.target.value))}
+                className="w-24 h-1 bg-surfaceHighlight rounded-lg appearance-none cursor-pointer accent-white hover:accent-secondary"
+              />
+            </div>
+          )}
           <Button variant="ghost" size="icon" onClick={onExpand} title="Open player">
             <Maximize2 size={18} />
           </Button>
