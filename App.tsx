@@ -200,8 +200,8 @@ const App: React.FC = () => {
   });
 
   /* --- REFS --- */
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const audiobookAudioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audiobookAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastAudiobookPersistRef = useRef<number>(0);
   const activeBookRef = useRef<Audiobook | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
