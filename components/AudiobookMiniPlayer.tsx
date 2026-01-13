@@ -56,7 +56,8 @@ export const AudiobookMiniPlayer: React.FC<AudiobookMiniPlayerProps> = ({
 
   return (
     <>
-      <div className="h-20 bg-surface border-t border-white/5 px-4 flex items-center justify-between z-40 relative">
+      {/* --- DESKTOP VIEW --- */}
+      <div className="hidden md:flex h-20 bg-surface border-t border-white/5 px-4 items-center justify-between z-40 relative">
         {/* Left: Book info */}
         <div className="flex items-center gap-4 w-1/3 min-w-0 cursor-pointer" onClick={onExpand}>
           <div className="w-14 h-14 rounded-md overflow-hidden bg-surfaceHighlight shadow-lg flex-shrink-0">
@@ -135,6 +136,60 @@ export const AudiobookMiniPlayer: React.FC<AudiobookMiniPlayerProps> = ({
           <Button variant="ghost" size="icon" onClick={onStop} title="Stop">
             <X size={18} />
           </Button>
+        </div>
+      </div>
+
+      {/* --- MOBILE VIEW --- */}
+      <div
+        className="md:hidden h-16 bg-[#09090b] px-3 flex items-center justify-between z-40 relative"
+        onClick={onExpand}
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Cover Art */}
+          <div className="w-10 h-10 rounded overflow-hidden bg-surfaceHighlight flex-shrink-0">
+            {book.coverArt ? (
+              <img src={book.coverArt} alt={book.title} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-surfaceHighlight" />
+            )}
+          </div>
+
+          {/* Info */}
+          <div className="flex flex-col min-w-0 justify-center">
+            <span className="text-sm font-bold text-white truncate leading-tight mb-0.5">{book.title}</span>
+            <span className="text-xs text-textSub">
+              {(() => {
+                if (!durationKnown) return 'Loading...';
+                const leftSeconds = Math.max(0, book.duration - progress);
+                const h = Math.floor(leftSeconds / 3600);
+                const m = Math.floor((leftSeconds % 3600) / 60);
+                if (h > 0) return `${h}h ${m}m left`;
+                return `${m}m left`;
+              })()}
+            </span>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-3 flex-shrink-0" onClick={e => e.stopPropagation()}>
+          <button
+            className="w-10 h-10 flex items-center justify-center text-white relative hover:bg-white/10 rounded-full transition-colors"
+            onClick={() => onJump(-30)}
+          >
+            <RotateCcw size={22} className="text-white" />
+            <span className="absolute text-[8px] font-bold mt-[3px] text-white">30</span>
+          </button>
+
+          <button
+            className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+            onClick={onTogglePlay}
+          >
+            {isPlaying ? (
+              <Pause size={18} fill="black" />
+            ) : (
+              <Play size={18} fill="black" className="ml-0.5" />
+            )}
+          </button>
         </div>
       </div>
 
