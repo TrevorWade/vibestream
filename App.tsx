@@ -320,22 +320,39 @@ const App: React.FC = () => {
   }, [playerState.isPlaying]);
 
   // --- HISTORY / BACK BUTTON ---
-  useEffect(() => {
-    const handlePopState = () => {
-      // If we have a playlist selected, close it
-      if (selectedPlaylistId) {
-        setSelectedPlaylistId(null);
-      }
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [selectedPlaylistId]);
+  const isPopping = useRef(false);
 
   useEffect(() => {
-    if (selectedPlaylistId) {
-      window.history.pushState({ playlistId: selectedPlaylistId }, '', '');
+    const handlePopState = (e: PopStateEvent) => {
+      isPopping.current = true;
+      const state = e.state || {};
+      setActiveTab(state.tab || 'home');
+      setSelectedPlaylistId(state.playlistId || null);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Initialize history state on mount to match current UI (replace, don't push)
+    window.history.replaceState(
+      { tab: activeTab, playlistId: selectedPlaylistId },
+      '',
+      ''
+    );
+
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []); // Run once on mount
+
+  useEffect(() => {
+    if (isPopping.current) {
+      isPopping.current = false;
+      return;
     }
-  }, [selectedPlaylistId]);
+    window.history.pushState(
+      { tab: activeTab, playlistId: selectedPlaylistId },
+      '',
+      ''
+    );
+  }, [activeTab, selectedPlaylistId]);
 
   // Keep audio element's volume in sync with state volume.
   useEffect(() => {
