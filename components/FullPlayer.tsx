@@ -29,7 +29,7 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
   const bgGradient = `linear-gradient(to bottom, ${playerState.isPlaying ? '#4c1d95' : '#1f2937'}, #121212)`;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex flex-col transition-all duration-500 ease-in-out"
       style={{ background: bgGradient }}
     >
@@ -44,8 +44,8 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col items-center justify-center p-6 space-y-8">
-        
+      <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col items-center justify-center p-6 pb-24 space-y-8">
+
         {/* Album Art or Lyrics */}
         <div className="w-full max-w-md aspect-square relative shadow-2xl shadow-black/50 rounded-lg overflow-hidden transition-all duration-500">
           {!showLyrics ? (
@@ -57,27 +57,27 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
               </div>
             )
           ) : (
-             <div className="w-full h-full bg-black/40 backdrop-blur-md p-6 overflow-y-auto rounded-lg border border-white/10">
-               {track.lyrics ? (
-                 <div className="whitespace-pre-wrap text-lg leading-relaxed font-medium text-textMain/90">
-                   {track.lyrics}
-                 </div>
-               ) : (
-                 <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                   <p className="text-textSub">No lyrics available locally.</p>
-                   <p className="text-xs text-textSub/50">Ensure a .lrc or .txt file with the same name exists in the folder.</p>
-                 </div>
-               )}
-             </div>
+            <div className="w-full h-full bg-black/40 backdrop-blur-md p-6 overflow-y-auto rounded-lg border border-white/10">
+              {track.lyrics ? (
+                <div className="whitespace-pre-wrap text-lg leading-relaxed font-medium text-textMain/90">
+                  {track.lyrics}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+                  <p className="text-textSub">No lyrics available locally.</p>
+                  <p className="text-xs text-textSub/50">Ensure a .lrc or .txt file with the same name exists in the folder.</p>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
         {/* Track Info */}
         <div className="w-full max-w-md flex items-center justify-between">
-           <div className="flex flex-col overflow-hidden">
-             <h2 className="text-2xl font-bold truncate text-textMain">{track.title}</h2>
-             <p className="text-lg text-textSub truncate">{track.artist || 'Unknown Artist'}</p>
-           </div>
+          <div className="flex flex-col overflow-hidden">
+            <h2 className="text-2xl font-bold truncate text-textMain">{track.title}</h2>
+            <p className="text-lg text-textSub truncate">{track.artist || 'Unknown Artist'}</p>
+          </div>
         </div>
 
         {/* Progress Bar */}
@@ -97,7 +97,7 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
         </div>
 
         {/* Controls */}
-        <PlayerControls 
+        <PlayerControls
           size="large"
           isPlaying={playerState.isPlaying}
           onPlayPause={controls.togglePlay}
@@ -111,7 +111,7 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
 
         {/* Play Count Stats */}
         <div className="text-xs text-textSub tracking-wide bg-surface/50 px-3 py-1 rounded-full">
-           Played {track.playCount} times
+          Played {track.playCount} times
         </div>
 
       </div>

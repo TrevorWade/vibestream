@@ -1,6 +1,6 @@
 import React from 'react';
-import { 
-  Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1 
+import {
+  Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1
 } from 'lucide-react';
 import { Button } from './Button';
 import { ShuffleMode, RepeatMode } from '../types';
@@ -37,10 +37,10 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   };
 
   return (
-    <div className={`flex items-center ${isLarge ? 'justify-between w-full max-w-sm px-4' : 'gap-4'}`}>
-      <Button 
-        variant="icon" 
-        size="icon" 
+    <div className={`flex items-center ${isLarge ? 'justify-center gap-8 w-full max-w-sm px-4' : 'gap-4'}`}>
+      <Button
+        variant="icon"
+        size="icon"
         onClick={onToggleShuffle}
         className={getShuffleIconColor()}
         title={`Shuffle: ${shuffleMode}`}
@@ -55,8 +55,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
         <SkipBack size={isLarge ? 32 : 24} className="fill-current" />
       </Button>
 
-      <Button 
-        variant={isLarge ? 'primary' : 'icon'} 
+      <Button
+        variant={isLarge ? 'primary' : 'icon'}
         size={isLarge ? 'icon' : 'icon'}
         className={`${isLarge ? 'w-16 h-16 !p-0 flex items-center justify-center bg-white text-black hover:bg-gray-200' : 'bg-white text-black rounded-full p-1 hover:scale-105'}`}
         onClick={(e) => {
@@ -75,9 +75,9 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
         <SkipForward size={isLarge ? 32 : 24} className="fill-current" />
       </Button>
 
-      <Button 
-        variant="icon" 
-        size="icon" 
+      <Button
+        variant="icon"
+        size="icon"
         onClick={onToggleRepeat}
         active={repeatMode !== RepeatMode.OFF}
       >
