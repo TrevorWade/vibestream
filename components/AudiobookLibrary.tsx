@@ -3,16 +3,17 @@ import { FolderPlus, BookOpen } from 'lucide-react';
 import { Audiobook } from '../types';
 import { Button } from './Button';
 import { AudiobookTile } from './AudiobookTile';
-import { 
-  getAllAudiobooks, 
-  extractMetadata, 
-  saveAudiobookMetadata, 
+import {
+  getAllAudiobooks,
+  extractMetadata,
+  saveAudiobookMetadata,
   getPlaybackPosition,
   getBookKey,
   deleteAudiobook,
   deleteAudiobookState,
   saveAudiobookSource,
   removeAudiobookSource,
+  getAudiobookSource,
   getAllAudiobookSources,
   rebuildAudiobookFromHandle,
   getLastPlayedBook
@@ -59,33 +60,29 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
       for (const source of sources) {
         try {
           // Verify we still have permission to access the directory
-          const permission = await source.handle.queryPermission({ mode: 'read' });
-          
-          if (permission === 'granted') {
-            // Try to get existing metadata from IndexedDB first
-            const existingMetadata = await getAllAudiobooks().then(books => 
-              books.find(b => b.id === source.bookId)
-            );
-            
-            // Rebuild the audiobook from the saved handle
-            const book = await rebuildAudiobookFromHandle(source, existingMetadata);
-            rehydrated.push(book);
-            
-            // Update the last accessed time
-            await saveAudiobookSource(
-              source.bookId, 
-              source.handle, 
-              source.filePath, 
-              source.folderName
-            );
-          } else {
-            // Permission denied - book will need manual refresh
-            console.warn(`Permission denied for audiobook ${source.bookId}`);
-            setBooksNeedingRefresh(prev => new Set(prev).add(source.bookId));
-          }
+          // Try to access the handle - this will throw if permission is denied
+          await source.handle.getDirectoryHandle('.');
+
+          // If we get here, we have permission
+          // Try to get existing metadata from IndexedDB first
+          const existingMetadata = await getAllAudiobooks().then(books =>
+            books.find(b => b.id === source.bookId)
+          );
+
+          // Rebuild the audiobook from the saved handle
+          const book = await rebuildAudiobookFromHandle(source, existingMetadata);
+          rehydrated.push(book);
+
+          // Update the last accessed time
+          await saveAudiobookSource(
+            source.bookId,
+            source.handle,
+            source.filePath,
+            source.folderName
+          );
         } catch (err) {
-          console.warn(`Failed to rehydrate audiobook ${source.bookId}:`, err);
-          // Book will show with refresh button instead
+          // Permission denied or other error - book will need manual refresh
+          console.warn(`Failed to access audiobook ${source.bookId}:`, err);
           setBooksNeedingRefresh(prev => new Set(prev).add(source.bookId));
         }
       }
@@ -188,7 +185,7 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
       }
 
       // Request permission to access the directory
-      const permission = await source.handle.requestPermission({ mode: 'read' });
+      const permission = await (source.handle as any).requestPermission({ mode: 'read' });
       
       if (permission !== 'granted') {
         window.alert('Permission denied. Unable to refresh audiobook.');
