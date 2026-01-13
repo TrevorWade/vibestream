@@ -1262,7 +1262,7 @@ const App: React.FC = () => {
           <TopHeader
             title={
               activeTab === 'home'
-                ? `Good ${new Date().getHours() < 12 ? 'Morning' : 'Evening'}`
+                ? <span className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">{APP_NAME}</span>
                 : activeTab === 'search'
                   ? 'Search'
                   : activeTab === 'audiobooks'

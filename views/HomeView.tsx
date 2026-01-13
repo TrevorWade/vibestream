@@ -1,9 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { ListMusic } from 'lucide-react';
 import { Playlist, Track } from '../types';
 import { ChipRow } from '../components/ChipRow';
-import { MediaTile } from '../components/MediaTile';
-import { MediaCard } from '../components/MediaCard';
 import { MobileTrackRow } from '../components/MobileTrackRow';
 
 /**
@@ -32,25 +29,6 @@ export function HomeView(props: {
 
   const allTrackIds = useMemo(() => tracks.map((t) => t.id), [tracks]);
 
-  const quickTiles = useMemo(() => {
-    // Spotify home usually shows a small set of quick tiles.
-    // We keep this deterministic and readable.
-    const base = playlists.slice(0, 6);
-    const tiles: Array<{ id: string; name: string }> = [
-      { id: 'all', name: 'All Songs' },
-      ...base.map((p) => ({ id: p.id, name: p.name })),
-    ];
-    return tiles;
-  }, [playlists]);
-
-  const jumpBackIn = useMemo(() => {
-    // Simple heuristic: most played tracks.
-    // Later we can use history (if we want) for higher fidelity.
-    return [...tracks]
-      .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
-      .slice(0, 10);
-  }, [tracks]);
-
   const recent = useMemo(() => {
     // Tracks are appended in upload order, so the last ones are “recent”.
     // We show a small slice to keep the UI fast and scannable.
@@ -76,43 +54,6 @@ export function HomeView(props: {
           { value: 'audiobooks', label: 'Audiobooks' },
         ]}
       />
-
-      {/* Quick tiles (Spotify "Good evening" grid vibe) */}
-      <section className="px-4">
-        <div className="grid grid-cols-2 gap-2">
-          {quickTiles.map((pl: any) => (
-            <MediaTile
-              key={pl.id}
-              title={pl.name}
-              icon={<ListMusic size={20} className="text-textSub" />}
-              onClick={() => onOpenPlaylist(pl.id)}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Jump back in */}
-      <section className="px-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-lg font-extrabold">Jump back in</div>
-          {/* Right side kept empty intentionally (Spotify has icons/actions here). */}
-        </div>
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-          {jumpBackIn.length === 0 ? (
-            <div className="text-sm text-textSub py-6">Play something to see it here.</div>
-          ) : (
-            jumpBackIn.map((t) => (
-              <MediaCard
-                key={t.id}
-                title={t.title}
-                subtitle={t.artist}
-                image={t.coverArt}
-                onClick={() => onPlayInContext(t.id, allTrackIds)}
-              />
-            ))
-          )}
-        </div>
-      </section>
 
       {/* Recently added */}
       <section className="px-4 pb-2">

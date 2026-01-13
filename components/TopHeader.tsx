@@ -10,7 +10,7 @@ import React from 'react';
  * This matches the “sticky header” feel of Spotify on mobile.
  */
 export function TopHeader(props: {
-  title: string;
+  title: React.ReactNode;
   subtitle?: string;
   right?: React.ReactNode;
 }) {
