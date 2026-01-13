@@ -415,10 +415,13 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
 
   return (
     <div className="flex flex-col space-y-8 p-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Audiobooks</h2>
           <p className="text-textSub">Manage and listen to your .m4b and .m4a library</p>
+          <p className="text-xs text-primary/80 mt-1">
+            Reminder: re-import the folder each time you visit this page so the library can read your files.
+          </p>
         </div>
         <Button 
           variant="primary" 

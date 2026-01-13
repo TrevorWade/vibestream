@@ -1263,6 +1263,7 @@ const App: React.FC = () => {
                     progress={audiobookProgress}
                     onTogglePlay={audiobookTogglePlay}
                     onJump={audiobookJump}
+                    onSeek={seek}
                     onExpand={() => setIsAudiobookExpanded(true)}
                     onStop={audiobookStop}
                   />
@@ -1895,6 +1896,7 @@ const App: React.FC = () => {
             progress={audiobookProgress}
             onTogglePlay={audiobookTogglePlay}
             onJump={audiobookJump}
+            onSeek={seek}
             onExpand={() => setIsAudiobookExpanded(true)}
             onStop={audiobookStop}
           />

@@ -1,5 +1,6 @@
 import { Audiobook, Chapter, Bookmark, AudiobookSource } from '../types';
 import { get, put, remove, getAll, getAllKeys } from './db';
+import { parseBlob, IAudioMetadata, IPicture } from 'music-metadata-browser';
 
 // Stable key for audiobooks
 export function getBookKey(file: File): string {
@@ -151,8 +152,13 @@ export async function rebuildAudiobookFromHandle(
   // If we have existing metadata, use it; otherwise extract fresh
   let metadata: Partial<Audiobook> = existingMetadata || {};
   
-  if (!metadata.title || !metadata.coverArt) {
-    // Extract metadata from the file
+  const needsExtraction =
+    !metadata.title ||
+    !metadata.coverArt ||
+    !metadata.chapters ||
+    metadata.chapters.length === 0;
+
+  if (needsExtraction) {
     const extracted = await extractMetadata(file);
     metadata = { ...extracted, ...metadata };
   }
@@ -171,6 +177,11 @@ export async function rebuildAudiobookFromHandle(
     chapters: metadata.chapters || [{ title: "Start", startTime: 0 }]
   };
 
+  try {
+    await saveAudiobookMetadata(book);
+  } catch (err) {
+    console.warn('Failed to persist audiobook metadata after rebuild:', err);
+  }
   return book;
 }
 
@@ -192,59 +203,118 @@ export async function getLastPlayedBook(): Promise<string | undefined> {
 
 // Metadata extraction using jsmediatags (assumed to be on window)
 export async function extractMetadata(file: File): Promise<Partial<Audiobook>> {
-  const jsmediatags = (window as any).jsmediatags;
-  if (!jsmediatags) return {};
+  try {
+    const metadata = await parseBlob(file);
+    const primaryCover =
+      convertPicture(metadata.common.picture?.[0]) || extractNativeCover(metadata);
+    const coverArt = primaryCover || (await extractCoverUsingJsMediaTags(file));
+    const chaptersFromMetadata = parseMmChapters(metadata);
+    const fallbackChapters = await resolveChapters(file, chaptersFromMetadata);
 
-  return new Promise((resolve) => {
-    // Set a timeout to avoid hanging the import process
-    const timeout = setTimeout(() => {
-      console.warn(`Metadata extraction timed out for ${file.name}`);
-      resolve({
-        title: file.name.replace(/\.[^/.]+$/, ""),
-        author: "Unknown Author",
-        chapters: [{ title: "Start", startTime: 0 }]
-      });
-    }, 2000);
+    return {
+      title: metadata.common.title || file.name.replace(/\.[^/.]+$/, ""),
+      author: metadata.common.artist || metadata.common.albumartist || 'Unknown Author',
+      narrator: metadata.common.comment?.[0] || '',
+      coverArt,
+      chapters: fallbackChapters,
+    };
+  } catch (error) {
+    console.warn('music-metadata-browser failed:', error);
+    const chapters = await resolveChapters(file);
+    const fallbackCover = await extractCoverUsingJsMediaTags(file);
+    return {
+      title: file.name.replace(/\.[^/.]+$/, ""),
+      author: "Unknown Author",
+      coverArt: fallbackCover,
+      chapters,
+    };
+  }
+}
 
+function convertPicture(picture?: IPicture): string | undefined {
+  if (!picture?.data || !picture.format) return undefined;
+  return convertPictureData(picture.format, picture.data);
+}
+
+function convertPictureData(format: string, data: Uint8Array | ArrayBuffer | number[]): string | undefined {
+  const bytes = data instanceof Uint8Array
+    ? data
+    : data instanceof ArrayBuffer
+      ? new Uint8Array(data)
+      : new Uint8Array(data);
+
+  let base64String = '';
+  for (let i = 0; i < bytes.length; i++) {
+    base64String += String.fromCharCode(bytes[i]);
+  }
+  try {
+    return `data:${format};base64,${window.btoa(base64String)}`;
+  } catch (err) {
+    console.warn('Cover art encoding failed', err);
+    return undefined;
+  }
+}
+
+function extractNativeCover(metadata: IAudioMetadata): string | undefined {
+  const native = metadata.native || {};
+  for (const tags of Object.values(native)) {
+    if (!Array.isArray(tags)) continue;
+    for (const tag of tags) {
+      const candidate =
+        normalizePictureValue(tag?.value) ||
+        normalizePictureValue(tag);
+      if (candidate) return candidate;
+    }
+  }
+  return undefined;
+}
+
+function normalizePictureValue(value: any): string | undefined {
+  if (!value) return undefined;
+  const format = value.format || value.mime || 'image/jpeg';
+  const data = value.data || value.picture || value.value;
+  if (!data) return undefined;
+  return convertPictureData(format, data);
+}
+
+async function extractCoverUsingJsMediaTags(file: File): Promise<string | undefined> {
+  const jsmediatags = (window as any)?.jsmediatags;
+  if (!jsmediatags) return undefined;
+  return new Promise(resolve => {
     jsmediatags.read(file, {
-      onSuccess: async (tag: any) => {
-        clearTimeout(timeout);
-        const { tags } = tag;
-        let coverArt: string | undefined;
-
-        if (tags.picture) {
-          const { data, format } = tags.picture;
-          let base64String = "";
-          for (let i = 0; i < data.length; i++) {
-            base64String += String.fromCharCode(data[i] || 0); // Guard against data issues
-          }
-          try {
-            coverArt = `data:${format};base64,${window.btoa(base64String)}`;
-          } catch (e) {
-            console.warn("Cover art encoding failed", e);
-          }
+      onSuccess: (tag: any) => {
+        const picture = tag?.tags?.picture;
+        if (picture && picture.data && picture.format) {
+          resolve(convertPictureData(picture.format, picture.data));
+          return;
         }
-
-        const chapters = await extractChapters(file);
-
-        resolve({
-          title: tags.title || file.name.replace(/\.[^/.]+$/, ""),
-          author: tags.artist || tags.composer || "Unknown Author",
-          narrator: tags.comment?.text || "",
-          coverArt,
-          chapters: chapters.length > 0 ? chapters : [{ title: "Start", startTime: 0 }]
-        });
+        resolve(undefined);
       },
-      onError: () => {
-        clearTimeout(timeout);
-        resolve({
-          title: file.name.replace(/\.[^/.]+$/, ""),
-          author: "Unknown Author",
-          chapters: [{ title: "Start", startTime: 0 }]
-        });
-      }
+      onError: () => resolve(undefined),
     });
   });
+}
+
+function parseMmChapters(metadata: IAudioMetadata): Chapter[] {
+  const rawChapters = metadata.format.chapters;
+  if (!rawChapters?.length) return [];
+  const sampleRate = metadata.format.sampleRate || 48000;
+  return rawChapters.map((chapter, index) => {
+    const startTime =
+      typeof chapter.sampleOffset === 'number'
+        ? chapter.sampleOffset / Math.max(sampleRate, 1)
+        : 0;
+    return {
+      title: chapter.title?.trim() || `Chapter ${index + 1}`,
+      startTime: Number.isFinite(startTime) ? startTime : 0,
+    };
+  });
+}
+
+async function resolveChapters(file: File, baseChapters?: Chapter[]): Promise<Chapter[]> {
+  if (baseChapters && baseChapters.length > 0) return baseChapters;
+  const chapters = await extractChapters(file);
+  return chapters.length > 0 ? chapters : [{ title: "Start", startTime: 0 }];
 }
 
 /**
@@ -254,26 +324,13 @@ export async function extractMetadata(file: File): Promise<Partial<Audiobook>> {
  */
 async function extractChapters(file: File): Promise<Chapter[]> {
   try {
-    // 1. Try reading the beginning of the file (first 1MB)
-    let chapters = await searchInChunks(file, 0, 1024 * 1024);
-    if (chapters.length > 0) return chapters;
-
-    // 2. Try reading the end of the file (last 2MB) if moov is typically at the end
-    const fileSize = file.size;
-    const endChunkSize = Math.min(fileSize, 2 * 1024 * 1024);
-    chapters = await searchInChunks(file, fileSize - endChunkSize, endChunkSize);
-    if (chapters.length > 0) return chapters;
-
+    const buffer = await file.arrayBuffer();
+    const view = new DataView(buffer);
+    return findChaptersInAtoms(view, 0, view.byteLength);
   } catch (e) {
     console.error("Advanced chapter extraction failed:", e);
+    return [];
   }
-  return [];
-}
-
-async function searchInChunks(file: File, offset: number, length: number): Promise<Chapter[]> {
-  const buffer = await file.slice(offset, offset + length).arrayBuffer();
-  const view = new DataView(buffer);
-  return findChaptersInAtoms(view, 0, view.byteLength);
 }
 
 function findChaptersInAtoms(view: DataView, offset: number, length: number): Chapter[] {

@@ -66,12 +66,17 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
     return () => { cancelled = true; };
   }, [book.id]);
 
+  const hasRealChapters = book.chapters && book.chapters.length > 0;
+  const displayedChapters = hasRealChapters
+    ? book.chapters
+    : [{ title: 'Chapters unavailable', startTime: 0 }];
+
   const currentChapterIndex = useMemo(() => {
-    return book.chapters.reduce((acc, ch, idx) => {
+    return displayedChapters.reduce((acc, ch, idx) => {
       if (progress >= ch.startTime) return idx;
       return acc;
     }, 0);
-  }, [book.chapters, progress]);
+  }, [displayedChapters, progress]);
 
   const durationKnown = isValidDuration(book.duration);
   const scrubberMax = durationKnown ? book.duration : 1;
@@ -80,14 +85,16 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
   const remaining = durationKnown ? Math.max(0, book.duration - progress) : null;
 
   const nextChapter = () => {
-    if (currentChapterIndex < book.chapters.length - 1) {
-      onSeek(book.chapters[currentChapterIndex + 1].startTime);
+    if (!hasRealChapters) return;
+    if (currentChapterIndex < displayedChapters.length - 1) {
+      onSeek(displayedChapters[currentChapterIndex + 1].startTime);
     }
   };
 
   const prevChapter = () => {
-    if (progress - book.chapters[currentChapterIndex].startTime > 3) {
-      onSeek(book.chapters[currentChapterIndex].startTime);
+    if (!hasRealChapters) return;
+    if (progress - displayedChapters[currentChapterIndex].startTime > 3) {
+      onSeek(displayedChapters[currentChapterIndex].startTime);
     } else if (currentChapterIndex > 0) {
       onSeek(book.chapters[currentChapterIndex - 1].startTime);
     }
@@ -161,7 +168,9 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
           >
             <List size={16} />
             <span className="text-xs uppercase tracking-wide">
-              {book.chapters[currentChapterIndex]?.title || `Chapter ${currentChapterIndex + 1}`}
+              {hasRealChapters
+                ? displayedChapters[currentChapterIndex]?.title || `Chapter ${currentChapterIndex + 1}`
+                : 'Chapters unavailable'}
             </span>
           </button>
 
@@ -353,22 +362,28 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
             <div className="w-10" />
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
-            {book.chapters.map((ch, idx) => (
-              <div 
-                key={idx}
-                className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors ${idx === currentChapterIndex ? 'bg-primary text-white' : 'hover:bg-white/5 text-textSub'}`}
-                onClick={() => {
-                  onSeek(ch.startTime);
-                  setShowChapters(false);
-                }}
-              >
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="font-bold truncate">{ch.title}</span>
-                  <span className="text-xs opacity-70">{formatTime(ch.startTime)}</span>
+            {hasRealChapters ? (
+              displayedChapters.map((ch, idx) => (
+                <div 
+                  key={idx}
+                  className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors ${idx === currentChapterIndex ? 'bg-primary text-white' : 'hover:bg-white/5 text-textSub'}`}
+                  onClick={() => {
+                    onSeek(ch.startTime);
+                    setShowChapters(false);
+                  }}
+                >
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="font-bold truncate">{ch.title}</span>
+                    <span className="text-xs opacity-70">{formatTime(ch.startTime)}</span>
+                  </div>
+                  {idx === currentChapterIndex && <div className="w-2 h-2 bg-white rounded-full ml-2 shrink-0" />}
                 </div>
-                {idx === currentChapterIndex && <div className="w-2 h-2 bg-white rounded-full ml-2 shrink-0" />}
+              ))
+            ) : (
+              <div className="text-center text-textSub/70 px-4 py-6">
+                Chapter metadata is unavailable for this file.
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}
