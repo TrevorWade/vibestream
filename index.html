@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VibeStream</title>
+    <!--
+      Font choice:
+      - Spotify uses a proprietary font. We cannot copy that.
+      - Inter is a high-quality, readable default that gets us the same clean vibe.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              /**
+               * Spotify-like neutrals + accent:
+               * - We keep the old names (background/surface/primary/secondary) because
+               *   existing components already reference them.
+               * - We add new tokens (accent/chip/divider/etc) for the new UI shell.
+               */
+              background: '#000000',
+              surface: '#121212',
+              surfaceElevated: '#181818',
+              surfaceHighlight: '#2A2A2A',
+              divider: 'rgba(255,255,255,0.08)',
+              chip: '#2A2A2A',
+              /**
+               * Accent color (teal-blue):
+               * - User requested moving away from green and back to teal.
+               * - Keep one source of truth (`accent`) and alias primary/secondary.
+               */
+              chipActive: '#06B6D4',
+              accent: '#06B6D4',
+              primary: '#06B6D4',
+              secondary: '#06B6D4',
+              textMain: '#FFFFFF',
+              textSub: '#B3B3B3',
+              textDim: '#A7A7A7',
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            borderRadius: {
+              // Used by new Spotify-style components.
+              card: '12px',
+              tile: '8px',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      /* Custom scrollbar for webkit */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #121212; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #333; 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555; 
+      }
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "vite": "https://esm.sh/vite@^7.3.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-background text-textMain overflow-hidden">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

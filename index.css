@@ -1,0 +1,86 @@
+/**
+ * Global CSS helpers for the app.
+ *
+ * Why this file exists:
+ * - `index.html` links to `/index.css`, but the file did not exist.
+ * - Tailwind handles most styling, but a few things are easier/cleaner in CSS:
+ *   - Safe-area padding for iOS/Android devices with notches/gesture bars
+ *   - Reusable background gradients (Spotify-style)
+ *   - Smooth momentum scrolling on mobile
+ *
+ * NOTE:
+ * - Keep this file small and focused. Prefer Tailwind for most styling.
+ */
+
+/* Allow our internal scroll containers to be the only scroll areas. */
+html,
+body {
+  height: 100%;
+}
+
+/* Improves perceived scroll quality on iOS. */
+.vs-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/**
+ * Safe area helpers:
+ * - Use these on wrappers where you need extra padding to avoid notches and
+ *   the iOS home indicator area.
+ */
+.vs-safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.vs-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/**
+ * Bottom spacing helpers:
+ * - Our mobile layout has a bottom tab bar and sometimes a mini player.
+ * - These CSS variables let us add padding without hard-coding values in 10 places.
+ */
+:root {
+  /* Rough Spotify-like bottom tab bar height. */
+  --vs-bottom-tabs: 56px;
+  /* Our mini player typically sits above tabs. */
+  --vs-mini-player: 64px;
+}
+
+.vs-pad-for-tabs {
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--vs-bottom-tabs));
+}
+
+.vs-pad-for-tabs-and-mini {
+  padding-bottom: calc(
+    env(safe-area-inset-bottom) + var(--vs-bottom-tabs) + var(--vs-mini-player)
+  );
+}
+
+/**
+ * Subtle Spotify-like background gradient (dark -> darker).
+ * - Applied on the mobile screens so the UI feels less flat.
+ */
+.vs-bg-spotify {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0) 40%),
+    #000;
+}
+
+/**
+ * Tailwind line-clamp isn’t enabled (we use CDN Tailwind).
+ * These minimal helpers cover the common mobile-card truncation needs.
+ */
+.line-clamp-1,
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-1 {
+  -webkit-line-clamp: 1;
+}
+.line-clamp-2 {
+  -webkit-line-clamp: 2;
+}
+
