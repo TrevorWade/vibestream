@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { 
-  ChevronDown, RotateCcw, RotateCw, SkipBack, SkipForward, 
-  Play, Pause, List, Gauge, Bookmark as BookmarkIcon, Plus, 
-  Trash2, X, Clock, BookOpen
+import {
+  ChevronDown, RotateCcw, RotateCw, SkipBack, SkipForward,
+  Play, Pause, List, Gauge, Bookmark as BookmarkIcon, Plus,
+  Trash2, X, Clock, BookOpen, Volume2
 } from 'lucide-react';
 import { Audiobook, Bookmark } from '../types';
 import { Button } from './Button';
-import { 
-  saveBookmark, 
-  getBookmarks, 
+import {
+  saveBookmark,
+  getBookmarks,
   deleteBookmark
 } from '../services/audiobookService';
 import { formatTime } from '../constants';
@@ -35,6 +35,8 @@ interface AudiobookPlayerProps {
   onSeek: (time: number) => void;
   onJump: (deltaSeconds: number) => void;
   onSetSpeed: (speed: number) => void;
+  volume?: number;
+  onSetVolume?: (v: number) => void;
 }
 
 export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
@@ -47,6 +49,8 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
   onSeek,
   onJump,
   onSetSpeed,
+  volume,
+  onSetVolume,
 }) => {
   const [showChapters, setShowChapters] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
@@ -61,7 +65,7 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
       try {
         const saved = await getBookmarks(book.id);
         if (!cancelled) setBookmarks(saved);
-      } catch {}
+      } catch { }
     })();
     return () => { cancelled = true; };
   }, [book.id]);
@@ -141,7 +145,7 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
       {/* Main Content Grid - NO SCROLL */}
       <div className="flex-1 w-full overflow-hidden flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-md flex flex-col items-center space-y-4">
-          
+
           {/* Cover Art - Constrained */}
           <div className="w-full max-w-[85vw] max-h-[45vh] aspect-square mx-auto">
             <div className="w-full h-full relative shadow-2xl shadow-black/80 rounded-xl overflow-hidden bg-surfaceHighlight">
@@ -162,7 +166,7 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
           </div>
 
           {/* Chapter Badge */}
-          <button 
+          <button
             className="flex items-center gap-2 text-primary font-bold px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
             onClick={() => setShowChapters(true)}
           >
@@ -196,11 +200,11 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
               />
               {durationKnown ? (
                 <>
-                  <div 
+                  <div
                     className="absolute h-full bg-primary rounded-full transition-all"
                     style={{ width: `${scrubberPct}%` }}
                   />
-                  <div 
+                  <div
                     className="absolute h-3 w-3 bg-primary rounded-full -top-1 -ml-1.5 pointer-events-none shadow-lg"
                     style={{ left: `${scrubberPct}%` }}
                   />
@@ -220,7 +224,7 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
             <Button variant="icon" onClick={prevChapter}>
               <SkipBack size={28} className="text-white" />
             </Button>
-            
+
             <div className="flex items-center gap-3">
               <Button variant="icon" onClick={() => onJump(-30)}>
                 <div className="relative">
@@ -229,7 +233,7 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
                 </div>
               </Button>
 
-              <Button 
+              <Button
                 className="w-20 h-20 !bg-white !text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-2xl shrink-0"
                 onClick={onTogglePlay}
               >
@@ -252,14 +256,30 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
               <SkipForward size={28} className="text-white" />
             </Button>
           </div>
+
+          {/* Volume Control */}
+          {typeof volume === 'number' && onSetVolume && (
+            <div className="w-full flex items-center justify-center gap-4 px-8 mt-4">
+              <Volume2 size={20} className="text-textSub" />
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={volume}
+                onChange={(e) => onSetVolume(Number(e.target.value))}
+                className="w-full max-w-[200px] h-1 bg-surfaceHighlight rounded-lg appearance-none cursor-pointer accent-white hover:accent-primary"
+              />
+            </div>
+          )}
         </div>
       </div>
 
       {/* Bottom Action Bar - Fixed */}
       <div className="w-full border-t border-white/5 bg-[#181818] p-2 shrink-0">
         <div className="grid grid-cols-3 gap-2 max-w-md mx-auto">
-          <Button 
-            variant="icon" 
+          <Button
+            variant="icon"
             className="flex flex-col items-center gap-1 py-2"
             onClick={() => setShowSpeedMenu(true)}
           >
@@ -267,8 +287,8 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
             <span className="text-[9px] font-bold uppercase tracking-tight">Speed {speed}x</span>
           </Button>
 
-          <Button 
-            variant="icon" 
+          <Button
+            variant="icon"
             className="flex flex-col items-center gap-1 py-2"
             onClick={() => setShowChapters(true)}
           >
@@ -276,8 +296,8 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
             <span className="text-[9px] font-bold uppercase tracking-tight">Chapters</span>
           </Button>
 
-          <Button 
-            variant="icon" 
+          <Button
+            variant="icon"
             className="flex flex-col items-center gap-1 py-2"
             onClick={addBookmark}
           >
@@ -297,7 +317,7 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
             </div>
             <div className="grid grid-cols-4 gap-3 pb-6">
               {[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0].map(s => (
-                <Button 
+                <Button
                   key={s}
                   variant={speed === s ? 'primary' : 'secondary'}
                   onClick={() => handleSpeedChange(s)}
@@ -364,7 +384,7 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
             {hasRealChapters ? (
               displayedChapters.map((ch, idx) => (
-                <div 
+                <div
                   key={idx}
                   className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors ${idx === currentChapterIndex ? 'bg-primary text-white' : 'hover:bg-white/5 text-textSub'}`}
                   onClick={() => {
@@ -403,11 +423,11 @@ export const AudiobookPlayer: React.FC<AudiobookPlayerProps> = ({
               </div>
             ) : (
               bookmarks.map((bm) => (
-                <div 
+                <div
                   key={bm.id}
                   className="bg-surface p-4 rounded-2xl flex items-center justify-between group"
                 >
-                  <div 
+                  <div
                     className="flex-1 cursor-pointer min-w-0"
                     onClick={() => {
                       onSeek(bm.timestamp);
