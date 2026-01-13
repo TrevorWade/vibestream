@@ -1,0 +1,6 @@
+{
+  "appId": "com.vibestream.app",
+  "appName": "VibeStream",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

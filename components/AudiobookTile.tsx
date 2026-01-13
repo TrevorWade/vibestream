@@ -19,7 +19,7 @@ interface AudiobookTileProps {
 
   // Optional menu actions
   onRemove?: () => void;
-  
+
   // Refresh button (for when auto-reload failed)
   needsRefresh?: boolean;
   onRefresh?: () => void;
@@ -101,19 +101,18 @@ export const AudiobookTile: React.FC<AudiobookTileProps> = ({
         {/* Refresh button overlay (for failed auto-reloads) */}
         {needsRefresh && onRefresh && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
-            <button
+            <div
               onClick={(e) => {
                 e.stopPropagation();
                 onRefresh();
               }}
-              className="p-3 rounded-full bg-primary hover:bg-primary/80 transition-colors shadow-lg"
-              title="Refresh audiobook"
+              className="flex flex-col items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
             >
-              <RefreshCw size={24} className="text-white" />
-            </button>
-            <span className="text-xs font-bold text-white/90 uppercase tracking-wider">
-              Tap to Refresh
-            </span>
+              <RefreshCw size={32} className="text-white" />
+              <span className="text-xs font-bold text-white/90 uppercase tracking-wider">
+                Re-import book
+              </span>
+            </div>
           </div>
         )}
 
@@ -143,7 +142,20 @@ export const AudiobookTile: React.FC<AudiobookTileProps> = ({
             </Button>
 
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-44 bg-surface rounded-xl border border-white/10 shadow-xl overflow-hidden">
+              <div className="absolute right-0 mt-2 w-44 bg-surface rounded-xl border border-white/10 shadow-xl overflow-hidden z-20">
+                {onRefresh && (
+                  <button
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-white/10 flex items-center gap-2 text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpen(false);
+                      onRefresh();
+                    }}
+                  >
+                    <RefreshCw size={16} />
+                    Re-import
+                  </button>
+                )}
                 <button
                   className="w-full text-left px-3 py-2 text-sm hover:bg-white/10 flex items-center gap-2 text-red-300"
                   onClick={() => {
@@ -164,7 +176,7 @@ export const AudiobookTile: React.FC<AudiobookTileProps> = ({
         <h4 className="font-bold text-sm truncate group-hover:text-primary transition-colors">{title}</h4>
         <p className="text-xs text-textSub truncate">{author || ''}</p>
       </div>
-    </div>
+    </div >
   );
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  Home, Search, Library, PlusSquare, Upload, Music, 
+import {
+  Home, Search, Library, PlusSquare, Upload, Music,
   Maximize2, Play, ListMusic, FolderInput, MoreVertical,
   Volume2, ArrowUpDown, Headphones
 } from 'lucide-react';
@@ -31,7 +31,7 @@ interface SidebarItemProps {
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, active, onClick }) => (
-  <div 
+  <div
     onClick={onClick}
     className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-colors ${active ? 'text-textMain bg-surfaceHighlight' : 'text-textSub hover:text-textMain hover:bg-white/5'}`}
   >
@@ -51,15 +51,15 @@ interface TrackRowProps {
   onRemoveFromPlaylist?: () => void;
 }
 
-const TrackRow: React.FC<TrackRowProps> = ({ 
-  track, 
-  index, 
-  isCurrent, 
-  onPlay, 
-  playlists, 
-  onAddToQueue, 
-  onAddToPlaylist, 
-  onRemoveFromPlaylist 
+const TrackRow: React.FC<TrackRowProps> = ({
+  track,
+  index,
+  isCurrent,
+  onPlay,
+  playlists,
+  onAddToQueue,
+  onAddToPlaylist,
+  onRemoveFromPlaylist
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPlaylists, setShowPlaylists] = useState(false);
@@ -88,7 +88,7 @@ const TrackRow: React.FC<TrackRowProps> = ({
   }, []);
 
   return (
-    <div 
+    <div
       onClick={onPlay}
       className={`group flex items-center gap-4 p-2 rounded-md hover:bg-white/10 cursor-pointer ${isCurrent ? 'text-secondary' : 'text-textSub'}`}
     >
@@ -114,7 +114,7 @@ const TrackRow: React.FC<TrackRowProps> = ({
         </Button>
         {menuOpen && (
           <div className="absolute right-0 top-8 z-20 w-48 bg-surface rounded-md border border-white/10 shadow-xl overflow-hidden">
-            <div 
+            <div
               className="px-3 py-2 text-sm hover:bg-white/10 cursor-pointer"
               onClick={() => {
                 onAddToQueue();
@@ -123,7 +123,7 @@ const TrackRow: React.FC<TrackRowProps> = ({
             >
               Add to queue
             </div>
-            <div 
+            <div
               className="px-3 py-2 text-sm hover:bg-white/10 cursor-pointer"
               onClick={() => setShowPlaylists(p => !p)}
             >
@@ -151,7 +151,7 @@ const TrackRow: React.FC<TrackRowProps> = ({
               </div>
             )}
             {onRemoveFromPlaylist && (
-              <div 
+              <div
                 className="px-3 py-2 text-sm hover:bg-white/10 cursor-pointer border-t border-white/5 text-red-300"
                 onClick={() => {
                   onRemoveFromPlaylist();
@@ -182,14 +182,14 @@ const App: React.FC = () => {
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
   const [playlistSort, setPlaylistSort] = useState<Record<string, 'recent' | 'title' | 'artist' | 'album'>>({});
   const [playlistSortDir, setPlaylistSortDir] = useState<Record<string, 'asc' | 'desc'>>({});
-  
+
   const [playerState, setPlayerState] = useState<PlayerState>({
     currentTrackId: null,
     isPlaying: false,
     volume: 0.25,
     progress: 0,
     queue: [],
-    originalQueue: [], 
+    originalQueue: [],
     shuffleMode: ShuffleMode.OFF,
     repeatMode: RepeatMode.OFF,
     history: [],
@@ -205,7 +205,7 @@ const App: React.FC = () => {
   const activeBookRef = useRef<Audiobook | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
-  
+
   const playerStateRef = useRef(playerState);
   const tracksRef = useRef(tracks);
 
@@ -218,7 +218,7 @@ const App: React.FC = () => {
 
   const handleTrackEnd = useCallback(() => {
     const state = playerStateRef.current;
-    
+
     // Always prioritize Up Next, even when repeat-one is enabled.
     if (state.upNext && state.upNext.length > 0) {
       const [nextId, ...rest] = state.upNext;
@@ -239,13 +239,13 @@ const App: React.FC = () => {
       let nextIndex = state.baseQueueIndex + 1;
 
       if (nextIndex >= queue.length) {
-         if (repeatMode === RepeatMode.ALL) {
-           nextIndex = 0;
-           setPlayerState(prev => ({ ...prev, baseQueueIndex: nextIndex }));
-           playTrackInternal(queue[nextIndex]);
-         } else {
-           setPlayerState(prev => ({ ...prev, isPlaying: false }));
-         }
+        if (repeatMode === RepeatMode.ALL) {
+          nextIndex = 0;
+          setPlayerState(prev => ({ ...prev, baseQueueIndex: nextIndex }));
+          playTrackInternal(queue[nextIndex]);
+        } else {
+          setPlayerState(prev => ({ ...prev, isPlaying: false }));
+        }
       } else {
         setPlayerState(prev => ({ ...prev, baseQueueIndex: nextIndex }));
         playTrackInternal(queue[nextIndex]);
@@ -254,53 +254,53 @@ const App: React.FC = () => {
   }, []);
 
   const playTrackInternal = (trackId: string) => {
-      const track = tracksRef.current.find(t => t.id === trackId);
-      if (!track || !audioRef.current) return;
+    const track = tracksRef.current.find(t => t.id === trackId);
+    if (!track || !audioRef.current) return;
 
-      setTracks(prev => prev.map(t => 
-        t.id === trackId ? { ...t, playCount: t.playCount + 1 } : t
-      ));
-      // Persist play count (fire-and-forget)
-      try {
-        const key = track.file ? getTrackKey(track.file) : null;
-        if (key) {
-          const newCount = (track.playCount || 0) + 1;
-          writePlayCount(key, newCount).catch(() => {});
-        }
-      } catch {}
+    setTracks(prev => prev.map(t =>
+      t.id === trackId ? { ...t, playCount: t.playCount + 1 } : t
+    ));
+    // Persist play count (fire-and-forget)
+    try {
+      const key = track.file ? getTrackKey(track.file) : null;
+      if (key) {
+        const newCount = (track.playCount || 0) + 1;
+        writePlayCount(key, newCount).catch(() => { });
+      }
+    } catch { }
 
-      audioRef.current.src = track.url;
-      audioRef.current.play().catch(e => console.error("Playback error:", e));
-      
-      setPlayerState(prev => ({
-        ...prev,
-        currentTrackId: trackId,
-        isPlaying: true,
-        history: [...prev.history, trackId]
-      }));
+    audioRef.current.src = track.url;
+    audioRef.current.play().catch(e => console.error("Playback error:", e));
+
+    setPlayerState(prev => ({
+      ...prev,
+      currentTrackId: trackId,
+      isPlaying: true,
+      history: [...prev.history, trackId]
+    }));
   };
 
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio();
-      
+
       audioRef.current.addEventListener('timeupdate', () => {
         setPlayerState(prev => ({ ...prev, progress: audioRef.current?.currentTime || 0 }));
       });
-      
+
       audioRef.current.addEventListener('ended', () => {
         handleTrackEnd();
       });
 
       audioRef.current.addEventListener('loadedmetadata', () => {
-         const duration = audioRef.current?.duration;
-         const currentId = playerStateRef.current.currentTrackId;
-         
-         if (duration && currentId && duration !== Infinity) {
-            setTracks(prev => prev.map(t => 
-                t.id === currentId ? { ...t, duration } : t
-            ));
-         }
+        const duration = audioRef.current?.duration;
+        const currentId = playerStateRef.current.currentTrackId;
+
+        if (duration && currentId && duration !== Infinity) {
+          setTracks(prev => prev.map(t =>
+            t.id === currentId ? { ...t, duration } : t
+          ));
+        }
       });
 
       // Ensure initial volume matches state when the Audio element is created.
@@ -312,7 +312,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (audioRef.current) {
       if (playerState.isPlaying && audioRef.current.paused) {
-        audioRef.current.play().catch(() => {});
+        audioRef.current.play().catch(() => { });
       } else if (!playerState.isPlaying && !audioRef.current.paused) {
         audioRef.current.pause();
       }
@@ -371,7 +371,7 @@ const App: React.FC = () => {
                       coverArt = `data:${format};base64,${window.btoa(base64String)}`;
                     }
                   }
-                } catch {}
+                } catch { }
               }
               const playCount = await readPlayCount(getTrackKey(file)).catch(() => 0) || 0;
               return {
@@ -461,7 +461,7 @@ const App: React.FC = () => {
                   coverArt = `data:${format};base64,${window.btoa(base64String)}`;
                 }
               }
-            } catch {}
+            } catch { }
           }
           const playCount = await readPlayCount(getTrackKey(file)).catch(() => 0) || 0;
           return {
@@ -518,28 +518,28 @@ const App: React.FC = () => {
     let nextIndex = baseQueueIndex + 1;
 
     if (nextIndex >= queue.length) {
-       if (repeatMode === RepeatMode.ALL) {
-         nextIndex = 0;
-       } else {
-         setPlayerState(prev => ({ ...prev, isPlaying: false }));
-         return;
-       }
+      if (repeatMode === RepeatMode.ALL) {
+        nextIndex = 0;
+      } else {
+        setPlayerState(prev => ({ ...prev, isPlaying: false }));
+        return;
+      }
     }
     setPlayerState(prev => ({ ...prev, baseQueueIndex: nextIndex }));
     playTrack(queue[nextIndex]);
   };
 
   const prevTrack = () => {
-     const { queue, currentTrackId, baseQueueIndex } = playerState;
-     if (audioRef.current && audioRef.current.currentTime > 3) {
-       audioRef.current.currentTime = 0;
-       return;
-     }
-     const prevIndex = baseQueueIndex - 1;
-     if (prevIndex >= 0) {
-       setPlayerState(prev => ({ ...prev, baseQueueIndex: prevIndex }));
-       playTrack(queue[prevIndex]);
-     }
+    const { queue, currentTrackId, baseQueueIndex } = playerState;
+    if (audioRef.current && audioRef.current.currentTime > 3) {
+      audioRef.current.currentTime = 0;
+      return;
+    }
+    const prevIndex = baseQueueIndex - 1;
+    if (prevIndex >= 0) {
+      setPlayerState(prev => ({ ...prev, baseQueueIndex: prevIndex }));
+      playTrack(queue[prevIndex]);
+    }
   };
 
   const seek = (time: number) => {
@@ -627,11 +627,11 @@ const App: React.FC = () => {
 
   const toggleShuffle = () => {
     setPlayerState(prev => {
-      const nextMode = 
+      const nextMode =
         prev.shuffleMode === ShuffleMode.OFF ? ShuffleMode.TRUE :
-        prev.shuffleMode === ShuffleMode.TRUE ? ShuffleMode.SMART : 
-        ShuffleMode.OFF;
-      
+          prev.shuffleMode === ShuffleMode.TRUE ? ShuffleMode.SMART :
+            ShuffleMode.OFF;
+
       let newQueue = [...prev.originalQueue];
 
       if (nextMode === ShuffleMode.TRUE) {
@@ -673,14 +673,14 @@ const App: React.FC = () => {
     if (!input) return; // user cancelled
     const name = input.trim();
     if (!name) return; // empty/whitespace only
-    
+
     // Use a readable slug as base id and ensure uniqueness with a timestamp suffix.
     const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'playlist';
     const id = `${base}-${Date.now()}`;
-    
+
     setPlaylists(prev => [...prev, { id, name, trackIds: [] }]);
   };
-  
+
   // Filter utility to get tracks for a specific playlist.
   // Supports the synthetic 'all' playlist id.
   const getTracksForPlaylist = (playlistId: string): Track[] => {
@@ -716,16 +716,16 @@ const App: React.FC = () => {
   // Add helpers to manage playlist membership from row menus.
 
   const addTrackToPlaylist = (trackId: string, playlistId: string) => {
-    setPlaylists(prev => prev.map(p => 
-      p.id === playlistId 
+    setPlaylists(prev => prev.map(p =>
+      p.id === playlistId
         ? { ...p, trackIds: Array.from(new Set([...(p.trackIds || []), trackId])) }
         : p
     ));
   };
 
   const removeTrackFromPlaylist = (trackId: string, playlistId: string) => {
-    setPlaylists(prev => prev.map(p => 
-      p.id === playlistId 
+    setPlaylists(prev => prev.map(p =>
+      p.id === playlistId
         ? { ...p, trackIds: (p.trackIds || []).filter(id => id !== trackId) }
         : p
     ));
@@ -772,58 +772,58 @@ const App: React.FC = () => {
       const path = file.webkitRelativePath || file.name;
       const pathParts = path.split('/');
       const baseName = file.name.substring(0, file.name.lastIndexOf('.'));
-      
+
       // Default Parsing (Fallback)
       let artist = "Unknown Artist";
       let title = baseName;
       let album = "Local Import";
-      
+
       // Try to guess from folder structure if simple filename fails
       if (pathParts.length >= 3) {
-         // e.g. Artist/Album/Song.mp3
-         artist = pathParts[pathParts.length - 3];
+        // e.g. Artist/Album/Song.mp3
+        artist = pathParts[pathParts.length - 3];
       } else {
-         // Try splitting filename e.g. "Artist - Title"
-         const nameParts = title.split('-');
-         if (nameParts.length > 1) {
-            artist = nameParts[0].trim();
-            title = nameParts[1].trim();
-         }
+        // Try splitting filename e.g. "Artist - Title"
+        const nameParts = title.split('-');
+        if (nameParts.length > 1) {
+          artist = nameParts[0].trim();
+          title = nameParts[1].trim();
+        }
       }
 
       let coverArt = SAMPLE_COVER_ARTS[i % SAMPLE_COVER_ARTS.length]; // Fallback
-      
+
       // Extract Metadata using jsmediatags from window
       const jsmediatags = (window as any).jsmediatags;
-      
+
       if (jsmediatags) {
         try {
           const tags: any = await new Promise((resolve) => {
-             jsmediatags.read(file, {
-                 onSuccess: (tag: any) => resolve(tag.tags),
-                 onError: (error: any) => {
-                     // console.warn(`Error reading tags for ${file.name}:`, error);
-                     resolve({});
-                 }
-             });
+            jsmediatags.read(file, {
+              onSuccess: (tag: any) => resolve(tag.tags),
+              onError: (error: any) => {
+                // console.warn(`Error reading tags for ${file.name}:`, error);
+                resolve({});
+              }
+            });
           });
 
           if (tags) {
-             if (tags.title) title = tags.title;
-             if (tags.artist) artist = tags.artist;
-             if (tags.album) album = tags.album;
-             if (tags.picture) {
-                 const { data, format } = tags.picture;
-                 let base64String = "";
-                 // Converting bytes to base64
-                 for (let j = 0; j < data.length; j++) {
-                     base64String += String.fromCharCode(data[j]);
-                 }
-                 coverArt = `data:${format};base64,${window.btoa(base64String)}`;
-             }
+            if (tags.title) title = tags.title;
+            if (tags.artist) artist = tags.artist;
+            if (tags.album) album = tags.album;
+            if (tags.picture) {
+              const { data, format } = tags.picture;
+              let base64String = "";
+              // Converting bytes to base64
+              for (let j = 0; j < data.length; j++) {
+                base64String += String.fromCharCode(data[j]);
+              }
+              coverArt = `data:${format};base64,${window.btoa(base64String)}`;
+            }
           }
         } catch (e) {
-           console.warn("Metadata read failed for", file.name, e);
+          console.warn("Metadata read failed for", file.name, e);
         }
       }
 
@@ -835,7 +835,7 @@ const App: React.FC = () => {
         title,
         artist,
         album: album || (pathParts.length >= 2 ? pathParts[pathParts.length - 2] : 'Local Import'),
-        duration: 0, 
+        duration: 0,
         url: URL.createObjectURL(file),
         playCount: 0,
         coverArt,
@@ -846,8 +846,8 @@ const App: React.FC = () => {
     setTracks(prev => {
       const updated = [...prev, ...newTracks];
       if (playerState.queue.length === 0) {
-         const ids = updated.map(t => t.id);
-         setPlayerState(s => ({ ...s, queue: ids, originalQueue: ids, baseQueueIndex: 0 }));
+        const ids = updated.map(t => t.id);
+        setPlayerState(s => ({ ...s, queue: ids, originalQueue: ids, baseQueueIndex: 0 }));
       }
       return updated;
     });
@@ -1084,7 +1084,7 @@ const App: React.FC = () => {
           setActiveBook(book);
           setIsAudiobookExpanded(true);
           // Save as last played book for auto-reload
-          saveLastPlayedBook(book.id).catch(() => {});
+          saveLastPlayedBook(book.id).catch(() => { });
         }} />
       )}
     </>
@@ -1110,7 +1110,7 @@ const App: React.FC = () => {
         const now = Date.now();
         if (activeBook && now - lastAudiobookPersistRef.current > 5000) {
           lastAudiobookPersistRef.current = now;
-          savePlaybackPosition(activeBook.id, t).catch(() => {});
+          savePlaybackPosition(activeBook.id, t).catch(() => { });
         }
       });
 
@@ -1125,7 +1125,7 @@ const App: React.FC = () => {
         if (a.duration && a.duration !== Infinity) {
           const updated = { ...book, duration: a.duration };
           setActiveBook(updated);
-          saveAudiobookMetadata(updated).catch(() => {});
+          saveAudiobookMetadata(updated).catch(() => { });
         }
       });
     }
@@ -1170,7 +1170,7 @@ const App: React.FC = () => {
         // Do NOT autoplay when a book is selected.
         a.pause();
         setAudiobookIsPlaying(false);
-      } catch {}
+      } catch { }
     })();
 
     return () => { cancelled = true; };
@@ -1186,7 +1186,7 @@ const App: React.FC = () => {
   const audiobookTogglePlay = () => {
     const a = audiobookAudioRef.current;
     if (!a) return;
-    if (a.paused) a.play().catch(() => {});
+    if (a.paused) a.play().catch(() => { });
     else a.pause();
   };
 
@@ -1197,7 +1197,7 @@ const App: React.FC = () => {
     const next = Math.max(0, Math.min(time, dur));
     a.currentTime = next;
     setAudiobookProgress(next);
-    savePlaybackPosition(activeBook.id, next).catch(() => {});
+    savePlaybackPosition(activeBook.id, next).catch(() => { });
   };
 
   const audiobookJump = (deltaSeconds: number) => {
@@ -1362,10 +1362,10 @@ const App: React.FC = () => {
           <div className="p-4">{renderViews()}</div>
         )}
       </AppShell>
-      
+
       {/* --- MAIN LAYOUT --- */}
       <div className="hidden md:flex flex-1 overflow-hidden">
-        
+
         {/* SIDEBAR (Desktop) */}
         <div className="hidden md:flex w-64 flex-col bg-background p-2 gap-2">
           <div className="p-4 flex items-center gap-2 mb-4">
@@ -1374,16 +1374,16 @@ const App: React.FC = () => {
             </div>
             <h1 className="text-xl font-bold tracking-tight">{APP_NAME}</h1>
           </div>
-          
+
           <nav className="space-y-1 bg-surface rounded-lg py-2">
-            <SidebarItem 
-              icon={Home} 
-              label="Home" 
-              active={activeTab === 'home'} 
+            <SidebarItem
+              icon={Home}
+              label="Home"
+              active={activeTab === 'home'}
               onClick={() => {
                 setSelectedPlaylistId(null); // Clear playlist selection when going Home
                 setActiveTab('home');
-              }} 
+              }}
             />
             <SidebarItem icon={Search} label="Search" active={activeTab === 'search'} onClick={() => setActiveTab('search')} />
             <SidebarItem icon={Library} label="Your Library" active={activeTab === 'library'} onClick={() => setActiveTab('library')} />
@@ -1391,345 +1391,345 @@ const App: React.FC = () => {
           </nav>
 
           <div className="flex-1 bg-surface rounded-lg p-4 overflow-y-auto mt-2">
-             <div className="flex items-center justify-between mb-4 text-textSub">
-               <span className="text-sm font-bold uppercase">Playlists</span>
-              <div 
-                className="cursor-pointer hover:text-textMain" 
+            <div className="flex items-center justify-between mb-4 text-textSub">
+              <span className="text-sm font-bold uppercase">Playlists</span>
+              <div
+                className="cursor-pointer hover:text-textMain"
                 title="Create playlist"
                 onClick={handleCreatePlaylist}
               >
                 <PlusSquare size={20} />
               </div>
-             </div>
-             <div className="flex items-center gap-2 mb-3">
-               <Button
-                 variant="secondary"
-                 size="sm"
-                 onClick={async () => {
-                   const handle = await pickDirectory();
-                   if (!handle) return;
-                   const name = handle.name || 'New Playlist';
-                   const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}`;
-                   setPlaylists(prev => [...prev, { id, name, trackIds: [] }]);
-                   await saveSource(id, name, handle);
-                   // Immediately rescan to populate tracks
-                   await (async () => {
-                     const files = await readAllAudioFromHandle(handle);
-                     const jsmediatags = (window as any).jsmediatags;
-                     const built = await Promise.all(files.map(async (file, i) => {
-                       const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                       let artist = "Unknown Artist";
-                       let title = baseName;
-                       let album = "Local Import";
-                       let coverArt = SAMPLE_COVER_ARTS[i % SAMPLE_COVER_ARTS.length];
-                       if (jsmediatags) {
-                         try {
-                           const tags: any = await new Promise((resolve) => {
-                             jsmediatags.read(file, {
-                               onSuccess: (tag: any) => resolve(tag.tags),
-                               onError: () => resolve({}),
-                             });
-                           });
-                           if (tags) {
-                             if (tags.title) title = tags.title;
-                             if (tags.artist) artist = tags.artist;
-                             if (tags.album) album = tags.album;
-                             if (tags.picture) {
-                               const { data, format } = tags.picture;
-                               let base64String = "";
-                               for (let j = 0; j < data.length; j++) {
-                                 base64String += String.fromCharCode(data[j]);
-                               }
-                               coverArt = `data:${format};base64,${window.btoa(base64String)}`;
-                             }
-                           }
-                         } catch {}
-                       }
-                       const playCount = await readPlayCount(getTrackKey(file)).catch(() => 0) || 0;
-                       return {
-                         id: `src-${id}-${i}-${Math.random().toString(36).substr(2, 9)}`,
-                         file,
-                         title,
-                         artist,
-                         album,
-                         duration: 0,
-                         url: URL.createObjectURL(file),
-                         playCount,
-                         coverArt,
-                       } as Track;
-                     }));
-                     // Merge into global tracks while deduping by key (name|size|mtime)
-                     setTracks(prev => {
-                       const keyOf = (t: Track) => getTrackKey(t.file);
-                       const existingKeys = new Map(prev.map(t => [keyOf(t), t.id]));
-                       const toAdd: Track[] = [];
-                       const newIdsForPlaylist: string[] = [];
-                       for (const t of built) {
-                         const k = keyOf(t);
-                         const existingId = existingKeys.get(k);
-                         if (existingId) {
-                           newIdsForPlaylist.push(existingId);
-                         } else {
-                           toAdd.push(t);
-                           newIdsForPlaylist.push(t.id);
-                         }
-                       }
-                       // Update playlist trackIds
-                       setPlaylists(pls => pls.map(p => p.id === id ? { ...p, trackIds: newIdsForPlaylist } : p));
-                       // Initialize queue if empty
-                       if (playerState.queue.length === 0) {
-                         const ids = [...prev, ...toAdd].map(t => t.id);
-                         setPlayerState(s => ({ ...s, queue: ids, originalQueue: ids, baseQueueIndex: 0 }));
-                       }
-                       return [...prev, ...toAdd];
-                     });
-                   })();
-                 }}
-               >
-                 Add folder as playlist
-               </Button>
-             </div>
-             {/* Optional: Export/Import play count metadata */}
-             <div className="flex items-center gap-2 mb-4">
-               <Button 
-                 variant="ghost" 
-                 size="sm"
-                 onClick={async () => {
-                   try {
-                     // Export only play counts to keep file sizes tiny
-                     const db = await import('./services/db');
-                     const plays = await db.getAll('plays');
-                     const dataStr = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify({ plays }));
-                     const a = document.createElement('a');
-                     a.href = dataStr;
-                     a.download = `vibe-plays-${Date.now()}.json`;
-                     a.click();
-                   } catch {}
-                 }}
-               >
-                 Export data
-               </Button>
-               <Button 
-                 variant="ghost" 
-                 size="sm"
-                 onClick={async () => {
-                   const input = document.createElement('input');
-                   input.type = 'file';
-                   input.accept = 'application/json';
-                   input.onchange = async () => {
-                     const file = input.files?.[0];
-                     if (!file) return;
-                     try {
-                       const text = await file.text();
-                       const json = JSON.parse(text);
-                       if (json?.plays && Array.isArray(json.plays)) {
-                         const db = await import('./services/db');
-                         // Best-effort import: write every key/value pair
-                         for (const entry of json.plays) {
-                           // If exported via getAll, entries may be values without keys.
-                           // We expect plays to be an object map; handle both cases.
-                         }
-                       } else if (json && typeof json === 'object') {
-                         const db = await import('./services/db');
-                         for (const [key, value] of Object.entries(json)) {
-                           if (key === 'plays' && value && typeof value === 'object') {
-                             for (const [k, v] of Object.entries(value as any)) {
-                               await db.put('plays', k, v as any);
-                             }
-                           }
-                         }
-                       }
-                     } catch {}
-                   };
-                   input.click();
-                 }}
-               >
-                 Import data
-               </Button>
-             </div>
-             {playlists.map(pl => (
-               <div key={pl.id} className="flex items-center justify-between py-2 group">
-                 <div 
-                   className={`text-sm cursor-pointer truncate ${selectedPlaylistId === pl.id ? 'text-secondary' : 'text-textSub group-hover:text-textMain'}`}
-                   onClick={() => {
-                     setSelectedPlaylistId(pl.id);
-                     setActiveTab('home');
-                   }}
-                 >
-                   {pl.name}
-                 </div>
-                 <PlaylistActions 
-                   id={pl.id}
-                   onRename={() => {
-                     const input = window.prompt('Rename playlist', pl.name);
-                     if (!input) return;
-                     const name = input.trim();
-                     if (!name) return;
-                     setPlaylists(prev => prev.map(p => p.id === pl.id ? { ...p, name } : p));
-                     // Best-effort: update source name as well
-                     (async () => {
-                       const src = await getSource(pl.id);
-                       if (src) await saveSource(pl.id, name, src.handle);
-                     })();
-                   }}
-                   onChangeFolder={async () => {
-                     const handle = await pickDirectory();
-                     if (!handle) return;
-                     await saveSource(pl.id, pl.name, handle);
-                     // Rescan and replace playlist tracks
-                     const files = await readAllAudioFromHandle(handle);
-                     const jsmediatags = (window as any).jsmediatags;
-                     const built = await Promise.all(files.map(async (file, i) => {
-                       const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                       let artist = "Unknown Artist";
-                       let title = baseName;
-                       let album = "Local Import";
-                       let coverArt = SAMPLE_COVER_ARTS[i % SAMPLE_COVER_ARTS.length];
-                       if (jsmediatags) {
-                         try {
-                           const tags: any = await new Promise((resolve) => {
-                             jsmediatags.read(file, {
-                               onSuccess: (tag: any) => resolve(tag.tags),
-                               onError: () => resolve({}),
-                             });
-                           });
-                           if (tags) {
-                             if (tags.title) title = tags.title;
-                             if (tags.artist) artist = tags.artist;
-                             if (tags.album) album = tags.album;
-                             if (tags.picture) {
-                               const { data, format } = tags.picture;
-                               let base64String = "";
-                               for (let j = 0; j < data.length; j++) {
-                                 base64String += String.fromCharCode(data[j]);
-                               }
-                               coverArt = `data:${format};base64,${window.btoa(base64String)}`;
-                             }
-                           }
-                         } catch {}
-                       }
-                       const playCount = await readPlayCount(getTrackKey(file)).catch(() => 0) || 0;
-                       return {
-                         id: `src-${pl.id}-${i}-${Math.random().toString(36).substr(2, 9)}`,
-                         file, title, artist, album, duration: 0,
-                         url: URL.createObjectURL(file),
-                         playCount, coverArt,
-                       } as Track;
-                     }));
-                     setTracks(prev => {
-                       const keyOf = (t: Track) => getTrackKey(t.file);
-                       const existingKeys = new Map(prev.map(t => [keyOf(t), t.id]));
-                       const toAdd: Track[] = [];
-                       const newIdsForPlaylist: string[] = [];
-                       for (const t of built) {
-                         const k = keyOf(t);
-                         const existingId = existingKeys.get(k);
-                         if (existingId) newIdsForPlaylist.push(existingId);
-                         else { toAdd.push(t); newIdsForPlaylist.push(t.id); }
-                       }
-                       setPlaylists(pls => pls.map(p => p.id === pl.id ? { ...p, trackIds: newIdsForPlaylist } : p));
-                       return [...prev, ...toAdd];
-                     });
-                   }}
-                   onRescan={async () => {
-                     const src = await getSource(pl.id);
-                     if (!src) { window.alert('No folder saved for this playlist. Use Change folder.'); return; }
-                     const files = await readAllAudioFromHandle(src.handle);
-                     const jsmediatags = (window as any).jsmediatags;
-                     const built = await Promise.all(files.map(async (file, i) => {
-                       const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                       let artist = "Unknown Artist";
-                       let title = baseName;
-                       let album = "Local Import";
-                       let coverArt = SAMPLE_COVER_ARTS[i % SAMPLE_COVER_ARTS.length];
-                       if (jsmediatags) {
-                         try {
-                           const tags: any = await new Promise((resolve) => {
-                             jsmediatags.read(file, {
-                               onSuccess: (tag: any) => resolve(tag.tags),
-                               onError: () => resolve({}),
-                             });
-                           });
-                           if (tags) {
-                             if (tags.title) title = tags.title;
-                             if (tags.artist) artist = tags.artist;
-                             if (tags.album) album = tags.album;
-                             if (tags.picture) {
-                               const { data, format } = tags.picture;
-                               let base64String = "";
-                               for (let j = 0; j < data.length; j++) {
-                                 base64String += String.fromCharCode(data[j]);
-                               }
-                               coverArt = `data:${format};base64,${window.btoa(base64String)}`;
-                             }
-                           }
-                         } catch {}
-                       }
-                       const playCount = await readPlayCount(getTrackKey(file)).catch(() => 0) || 0;
-                       return {
-                         id: `src-${pl.id}-${i}-${Math.random().toString(36).substr(2, 9)}`,
-                         file, title, artist, album, duration: 0,
-                         url: URL.createObjectURL(file),
-                         playCount, coverArt,
-                       } as Track;
-                     }));
-                     setTracks(prev => {
-                       const keyOf = (t: Track) => getTrackKey(t.file);
-                       const existingKeys = new Map(prev.map(t => [keyOf(t), t.id]));
-                       const toAdd: Track[] = [];
-                       const newIdsForPlaylist: string[] = [];
-                       for (const t of built) {
-                         const k = keyOf(t);
-                         const existingId = existingKeys.get(k);
-                         if (existingId) newIdsForPlaylist.push(existingId);
-                         else { toAdd.push(t); newIdsForPlaylist.push(t.id); }
-                       }
-                       setPlaylists(pls => pls.map(p => p.id === pl.id ? { ...p, trackIds: newIdsForPlaylist } : p));
-                       return [...prev, ...toAdd];
-                     });
-                   }}
-                   onRemove={async () => {
-                     if (!window.confirm('Remove this playlist?')) return;
-                     setPlaylists(prev => prev.filter(p => p.id !== pl.id));
-                     await removeSource(pl.id).catch(() => {});
-                     if (selectedPlaylistId === pl.id) setSelectedPlaylistId(null);
-                   }}
-                 />
-               </div>
-             ))}
-             
-             {/* Import Buttons */}
-             <div className="mt-4 space-y-3">
-               <div 
-                 className={`flex items-center gap-2 text-secondary cursor-pointer hover:underline text-sm ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                 onClick={() => !isProcessing && fileInputRef.current?.click()}
-               >
-                  <Upload size={16} /> Import Files
-               </div>
-               <div 
-                 className={`flex items-center gap-2 text-secondary cursor-pointer hover:underline text-sm ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                 onClick={() => !isProcessing && folderInputRef.current?.click()}
-               >
-                  <FolderInput size={16} /> Import Folder
-               </div>
-               {isProcessing && <div className="text-xs text-textSub animate-pulse">Processing metadata...</div>}
-             </div>
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={async () => {
+                  const handle = await pickDirectory();
+                  if (!handle) return;
+                  const name = handle.name || 'New Playlist';
+                  const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}`;
+                  setPlaylists(prev => [...prev, { id, name, trackIds: [] }]);
+                  await saveSource(id, name, handle);
+                  // Immediately rescan to populate tracks
+                  await (async () => {
+                    const files = await readAllAudioFromHandle(handle);
+                    const jsmediatags = (window as any).jsmediatags;
+                    const built = await Promise.all(files.map(async (file, i) => {
+                      const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                      let artist = "Unknown Artist";
+                      let title = baseName;
+                      let album = "Local Import";
+                      let coverArt = SAMPLE_COVER_ARTS[i % SAMPLE_COVER_ARTS.length];
+                      if (jsmediatags) {
+                        try {
+                          const tags: any = await new Promise((resolve) => {
+                            jsmediatags.read(file, {
+                              onSuccess: (tag: any) => resolve(tag.tags),
+                              onError: () => resolve({}),
+                            });
+                          });
+                          if (tags) {
+                            if (tags.title) title = tags.title;
+                            if (tags.artist) artist = tags.artist;
+                            if (tags.album) album = tags.album;
+                            if (tags.picture) {
+                              const { data, format } = tags.picture;
+                              let base64String = "";
+                              for (let j = 0; j < data.length; j++) {
+                                base64String += String.fromCharCode(data[j]);
+                              }
+                              coverArt = `data:${format};base64,${window.btoa(base64String)}`;
+                            }
+                          }
+                        } catch { }
+                      }
+                      const playCount = await readPlayCount(getTrackKey(file)).catch(() => 0) || 0;
+                      return {
+                        id: `src-${id}-${i}-${Math.random().toString(36).substr(2, 9)}`,
+                        file,
+                        title,
+                        artist,
+                        album,
+                        duration: 0,
+                        url: URL.createObjectURL(file),
+                        playCount,
+                        coverArt,
+                      } as Track;
+                    }));
+                    // Merge into global tracks while deduping by key (name|size|mtime)
+                    setTracks(prev => {
+                      const keyOf = (t: Track) => getTrackKey(t.file);
+                      const existingKeys = new Map(prev.map(t => [keyOf(t), t.id]));
+                      const toAdd: Track[] = [];
+                      const newIdsForPlaylist: string[] = [];
+                      for (const t of built) {
+                        const k = keyOf(t);
+                        const existingId = existingKeys.get(k);
+                        if (existingId) {
+                          newIdsForPlaylist.push(existingId);
+                        } else {
+                          toAdd.push(t);
+                          newIdsForPlaylist.push(t.id);
+                        }
+                      }
+                      // Update playlist trackIds
+                      setPlaylists(pls => pls.map(p => p.id === id ? { ...p, trackIds: newIdsForPlaylist } : p));
+                      // Initialize queue if empty
+                      if (playerState.queue.length === 0) {
+                        const ids = [...prev, ...toAdd].map(t => t.id);
+                        setPlayerState(s => ({ ...s, queue: ids, originalQueue: ids, baseQueueIndex: 0 }));
+                      }
+                      return [...prev, ...toAdd];
+                    });
+                  })();
+                }}
+              >
+                Add folder as playlist
+              </Button>
+            </div>
+            {/* Optional: Export/Import play count metadata */}
+            <div className="flex items-center gap-2 mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    // Export only play counts to keep file sizes tiny
+                    const db = await import('./services/db');
+                    const plays = await db.getAll('plays');
+                    const dataStr = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify({ plays }));
+                    const a = document.createElement('a');
+                    a.href = dataStr;
+                    a.download = `vibe-plays-${Date.now()}.json`;
+                    a.click();
+                  } catch { }
+                }}
+              >
+                Export data
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'application/json';
+                  input.onchange = async () => {
+                    const file = input.files?.[0];
+                    if (!file) return;
+                    try {
+                      const text = await file.text();
+                      const json = JSON.parse(text);
+                      if (json?.plays && Array.isArray(json.plays)) {
+                        const db = await import('./services/db');
+                        // Best-effort import: write every key/value pair
+                        for (const entry of json.plays) {
+                          // If exported via getAll, entries may be values without keys.
+                          // We expect plays to be an object map; handle both cases.
+                        }
+                      } else if (json && typeof json === 'object') {
+                        const db = await import('./services/db');
+                        for (const [key, value] of Object.entries(json)) {
+                          if (key === 'plays' && value && typeof value === 'object') {
+                            for (const [k, v] of Object.entries(value as any)) {
+                              await db.put('plays', k, v as any);
+                            }
+                          }
+                        }
+                      }
+                    } catch { }
+                  };
+                  input.click();
+                }}
+              >
+                Import data
+              </Button>
+            </div>
+            {playlists.map(pl => (
+              <div key={pl.id} className="flex items-center justify-between py-2 group">
+                <div
+                  className={`text-sm cursor-pointer truncate ${selectedPlaylistId === pl.id ? 'text-secondary' : 'text-textSub group-hover:text-textMain'}`}
+                  onClick={() => {
+                    setSelectedPlaylistId(pl.id);
+                    setActiveTab('home');
+                  }}
+                >
+                  {pl.name}
+                </div>
+                <PlaylistActions
+                  id={pl.id}
+                  onRename={() => {
+                    const input = window.prompt('Rename playlist', pl.name);
+                    if (!input) return;
+                    const name = input.trim();
+                    if (!name) return;
+                    setPlaylists(prev => prev.map(p => p.id === pl.id ? { ...p, name } : p));
+                    // Best-effort: update source name as well
+                    (async () => {
+                      const src = await getSource(pl.id);
+                      if (src) await saveSource(pl.id, name, src.handle);
+                    })();
+                  }}
+                  onChangeFolder={async () => {
+                    const handle = await pickDirectory();
+                    if (!handle) return;
+                    await saveSource(pl.id, pl.name, handle);
+                    // Rescan and replace playlist tracks
+                    const files = await readAllAudioFromHandle(handle);
+                    const jsmediatags = (window as any).jsmediatags;
+                    const built = await Promise.all(files.map(async (file, i) => {
+                      const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                      let artist = "Unknown Artist";
+                      let title = baseName;
+                      let album = "Local Import";
+                      let coverArt = SAMPLE_COVER_ARTS[i % SAMPLE_COVER_ARTS.length];
+                      if (jsmediatags) {
+                        try {
+                          const tags: any = await new Promise((resolve) => {
+                            jsmediatags.read(file, {
+                              onSuccess: (tag: any) => resolve(tag.tags),
+                              onError: () => resolve({}),
+                            });
+                          });
+                          if (tags) {
+                            if (tags.title) title = tags.title;
+                            if (tags.artist) artist = tags.artist;
+                            if (tags.album) album = tags.album;
+                            if (tags.picture) {
+                              const { data, format } = tags.picture;
+                              let base64String = "";
+                              for (let j = 0; j < data.length; j++) {
+                                base64String += String.fromCharCode(data[j]);
+                              }
+                              coverArt = `data:${format};base64,${window.btoa(base64String)}`;
+                            }
+                          }
+                        } catch { }
+                      }
+                      const playCount = await readPlayCount(getTrackKey(file)).catch(() => 0) || 0;
+                      return {
+                        id: `src-${pl.id}-${i}-${Math.random().toString(36).substr(2, 9)}`,
+                        file, title, artist, album, duration: 0,
+                        url: URL.createObjectURL(file),
+                        playCount, coverArt,
+                      } as Track;
+                    }));
+                    setTracks(prev => {
+                      const keyOf = (t: Track) => getTrackKey(t.file);
+                      const existingKeys = new Map(prev.map(t => [keyOf(t), t.id]));
+                      const toAdd: Track[] = [];
+                      const newIdsForPlaylist: string[] = [];
+                      for (const t of built) {
+                        const k = keyOf(t);
+                        const existingId = existingKeys.get(k);
+                        if (existingId) newIdsForPlaylist.push(existingId);
+                        else { toAdd.push(t); newIdsForPlaylist.push(t.id); }
+                      }
+                      setPlaylists(pls => pls.map(p => p.id === pl.id ? { ...p, trackIds: newIdsForPlaylist } : p));
+                      return [...prev, ...toAdd];
+                    });
+                  }}
+                  onRescan={async () => {
+                    const src = await getSource(pl.id);
+                    if (!src) { window.alert('No folder saved for this playlist. Use Change folder.'); return; }
+                    const files = await readAllAudioFromHandle(src.handle);
+                    const jsmediatags = (window as any).jsmediatags;
+                    const built = await Promise.all(files.map(async (file, i) => {
+                      const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                      let artist = "Unknown Artist";
+                      let title = baseName;
+                      let album = "Local Import";
+                      let coverArt = SAMPLE_COVER_ARTS[i % SAMPLE_COVER_ARTS.length];
+                      if (jsmediatags) {
+                        try {
+                          const tags: any = await new Promise((resolve) => {
+                            jsmediatags.read(file, {
+                              onSuccess: (tag: any) => resolve(tag.tags),
+                              onError: () => resolve({}),
+                            });
+                          });
+                          if (tags) {
+                            if (tags.title) title = tags.title;
+                            if (tags.artist) artist = tags.artist;
+                            if (tags.album) album = tags.album;
+                            if (tags.picture) {
+                              const { data, format } = tags.picture;
+                              let base64String = "";
+                              for (let j = 0; j < data.length; j++) {
+                                base64String += String.fromCharCode(data[j]);
+                              }
+                              coverArt = `data:${format};base64,${window.btoa(base64String)}`;
+                            }
+                          }
+                        } catch { }
+                      }
+                      const playCount = await readPlayCount(getTrackKey(file)).catch(() => 0) || 0;
+                      return {
+                        id: `src-${pl.id}-${i}-${Math.random().toString(36).substr(2, 9)}`,
+                        file, title, artist, album, duration: 0,
+                        url: URL.createObjectURL(file),
+                        playCount, coverArt,
+                      } as Track;
+                    }));
+                    setTracks(prev => {
+                      const keyOf = (t: Track) => getTrackKey(t.file);
+                      const existingKeys = new Map(prev.map(t => [keyOf(t), t.id]));
+                      const toAdd: Track[] = [];
+                      const newIdsForPlaylist: string[] = [];
+                      for (const t of built) {
+                        const k = keyOf(t);
+                        const existingId = existingKeys.get(k);
+                        if (existingId) newIdsForPlaylist.push(existingId);
+                        else { toAdd.push(t); newIdsForPlaylist.push(t.id); }
+                      }
+                      setPlaylists(pls => pls.map(p => p.id === pl.id ? { ...p, trackIds: newIdsForPlaylist } : p));
+                      return [...prev, ...toAdd];
+                    });
+                  }}
+                  onRemove={async () => {
+                    if (!window.confirm('Remove this playlist?')) return;
+                    setPlaylists(prev => prev.filter(p => p.id !== pl.id));
+                    await removeSource(pl.id).catch(() => { });
+                    if (selectedPlaylistId === pl.id) setSelectedPlaylistId(null);
+                  }}
+                />
+              </div>
+            ))}
 
-             <input 
-               type="file" 
-               multiple 
-               accept="audio/*,.lrc,.txt" 
-               ref={fileInputRef} 
-               className="hidden" 
-               onChange={handleFileUpload} 
-             />
-             <input 
-               type="file" 
-               ref={folderInputRef} 
-               className="hidden" 
-               onChange={handleFolderUpload}
-               {...({ webkitdirectory: "", directory: "" } as any)}
-             />
+            {/* Import Buttons */}
+            <div className="mt-4 space-y-3">
+              <div
+                className={`flex items-center gap-2 text-secondary cursor-pointer hover:underline text-sm ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => !isProcessing && fileInputRef.current?.click()}
+              >
+                <Upload size={16} /> Import Files
+              </div>
+              <div
+                className={`flex items-center gap-2 text-secondary cursor-pointer hover:underline text-sm ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => !isProcessing && folderInputRef.current?.click()}
+              >
+                <FolderInput size={16} /> Import Folder
+              </div>
+              {isProcessing && <div className="text-xs text-textSub animate-pulse">Processing metadata...</div>}
+            </div>
+
+            <input
+              type="file"
+              multiple
+              accept="audio/*,.lrc,.txt"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            <input
+              type="file"
+              ref={folderInputRef}
+              className="hidden"
+              onChange={handleFolderUpload}
+              {...({ webkitdirectory: "", directory: "" } as any)}
+            />
           </div>
         </div>
 
@@ -1745,108 +1745,108 @@ const App: React.FC = () => {
 
       {/* --- BOTTOM PLAYER (Music) --- */}
       {currentTrack && !playerState.isExpanded && !activeBook && (
-        <div 
+        <div
           className="hidden md:flex h-20 bg-surface border-t border-white/5 px-4 items-center justify-between z-40 relative cursor-pointer md:cursor-auto"
           onClick={(e) => {
             if (window.innerWidth < 768) {
-               setPlayerState(s => ({ ...s, isExpanded: true }));
+              setPlayerState(s => ({ ...s, isExpanded: true }));
             }
           }}
         >
-           {/* Left: Track Info */}
-           <div className="flex items-center gap-4 w-1/3 min-w-0">
-             <div className="relative group">
-               <img 
-                 src={currentTrack.coverArt} 
-                 alt="art" 
-                 className="w-14 h-14 rounded-md object-cover shadow-lg" 
-               />
-               <div 
-                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-md transition-opacity cursor-pointer md:hidden"
-                  onClick={(e) => {
-                     e.stopPropagation();
-                     setPlayerState(s => ({ ...s, isExpanded: true }));
-                  }}
-               >
-                 <Maximize2 size={20} />
-               </div>
-             </div>
-             <div className="flex flex-col overflow-hidden justify-center">
-               <span className="text-sm font-semibold text-white truncate hover:underline cursor-pointer">{currentTrack.title}</span>
-               <span className="text-xs text-textSub truncate hover:underline cursor-pointer">{currentTrack.artist}</span>
-             </div>
-           </div>
-
-           {/* Center: Controls */}
-           <div className="flex flex-col items-center max-w-md w-1/3 px-4" onClick={e => e.stopPropagation()}>
-             <div className="flex items-center gap-4 mb-1">
-                <PlayerControls 
-                  isPlaying={playerState.isPlaying}
-                  onPlayPause={togglePlay}
-                  onNext={nextTrack}
-                  onPrev={prevTrack}
-                  shuffleMode={playerState.shuffleMode}
-                  onToggleShuffle={toggleShuffle}
-                  repeatMode={playerState.repeatMode}
-                  onToggleRepeat={() => setPlayerState(s => ({...s, repeatMode: s.repeatMode === RepeatMode.OFF ? RepeatMode.ALL : s.repeatMode === RepeatMode.ALL ? RepeatMode.ONE : RepeatMode.OFF}))}
-                />
-             </div>
-             <div className="w-full flex items-center gap-2 text-xs text-textSub font-mono hidden md:flex">
-               <span>{formatTime(playerState.progress)}</span>
-               <input 
-                  type="range"
-                  min={0}
-                  max={currentTrack.duration || 0}
-                  value={playerState.progress}
-                  onChange={(e) => seek(Number(e.target.value))}
-                  className="flex-1 h-1 bg-surfaceHighlight rounded-lg appearance-none cursor-pointer accent-white hover:accent-secondary"
-               />
-               <span>{formatTime(currentTrack.duration || 0)}</span>
-             </div>
-           </div>
-
-           {/* Right: Extra Controls */}
-           <div className="w-1/3 flex justify-end items-center gap-3 hidden md:flex" onClick={e => e.stopPropagation()}>
-             {/* Volume */}
-             <div className="flex items-center gap-2 min-w-[160px]">
-               <Volume2 size={18} className="text-textSub" />
-               <input
-                 type="range"
-                 min={0}
-                 max={1}
-                 step={0.01}
-                 value={playerState.volume}
-                 onChange={(e) => setVolume(Number(e.target.value))}
-                 className="w-28 h-1 bg-surfaceHighlight rounded-lg appearance-none cursor-pointer accent-white hover:accent-secondary"
-               />
-             </div>
-             {/* Queue toggle */}
-             <Button 
-               variant="ghost" 
-               size="icon" 
-               onClick={() => setPlayerState(s => ({ ...s, isQueueOpen: !s.isQueueOpen }))}
-               active={!!playerState.isQueueOpen}
-               title="Queue"
-             >
-               <ListMusic size={20} />
-             </Button>
-             <Button variant="ghost" size="icon" onClick={() => setPlayerState(s => ({...s, isExpanded: true}))} title="Lyrics & Info">
+          {/* Left: Track Info */}
+          <div className="flex items-center gap-4 w-1/3 min-w-0">
+            <div className="relative group">
+              <img
+                src={currentTrack.coverArt}
+                alt="art"
+                className="w-14 h-14 rounded-md object-cover shadow-lg"
+              />
+              <div
+                className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-md transition-opacity cursor-pointer md:hidden"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPlayerState(s => ({ ...s, isExpanded: true }));
+                }}
+              >
                 <Maximize2 size={20} />
-             </Button>
-           </div>
+              </div>
+            </div>
+            <div className="flex flex-col overflow-hidden justify-center">
+              <span className="text-sm font-semibold text-white truncate hover:underline cursor-pointer">{currentTrack.title}</span>
+              <span className="text-xs text-textSub truncate hover:underline cursor-pointer">{currentTrack.artist}</span>
+            </div>
+          </div>
 
-           {/* Mobile Play/Pause only */}
-           <div className="md:hidden flex items-center mr-2" onClick={e => e.stopPropagation()}>
-              <Button variant="icon" onClick={togglePlay}>
-                {playerState.isPlaying ? <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center"><div className="w-3 h-3 bg-black" /></div> : <Play size={32} fill="white" />}
-              </Button>
-           </div>
+          {/* Center: Controls */}
+          <div className="flex flex-col items-center max-w-md w-1/3 px-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-4 mb-1">
+              <PlayerControls
+                isPlaying={playerState.isPlaying}
+                onPlayPause={togglePlay}
+                onNext={nextTrack}
+                onPrev={prevTrack}
+                shuffleMode={playerState.shuffleMode}
+                onToggleShuffle={toggleShuffle}
+                repeatMode={playerState.repeatMode}
+                onToggleRepeat={() => setPlayerState(s => ({ ...s, repeatMode: s.repeatMode === RepeatMode.OFF ? RepeatMode.ALL : s.repeatMode === RepeatMode.ALL ? RepeatMode.ONE : RepeatMode.OFF }))}
+              />
+            </div>
+            <div className="w-full flex items-center gap-2 text-xs text-textSub font-mono hidden md:flex">
+              <span>{formatTime(playerState.progress)}</span>
+              <input
+                type="range"
+                min={0}
+                max={currentTrack.duration || 0}
+                value={playerState.progress}
+                onChange={(e) => seek(Number(e.target.value))}
+                className="flex-1 h-1 bg-surfaceHighlight rounded-lg appearance-none cursor-pointer accent-white hover:accent-secondary"
+              />
+              <span>{formatTime(currentTrack.duration || 0)}</span>
+            </div>
+          </div>
+
+          {/* Right: Extra Controls */}
+          <div className="w-1/3 flex justify-end items-center gap-3 hidden md:flex" onClick={e => e.stopPropagation()}>
+            {/* Volume */}
+            <div className="flex items-center gap-2 min-w-[160px]">
+              <Volume2 size={18} className="text-textSub" />
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={playerState.volume}
+                onChange={(e) => setVolume(Number(e.target.value))}
+                className="w-28 h-1 bg-surfaceHighlight rounded-lg appearance-none cursor-pointer accent-white hover:accent-secondary"
+              />
+            </div>
+            {/* Queue toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPlayerState(s => ({ ...s, isQueueOpen: !s.isQueueOpen }))}
+              active={!!playerState.isQueueOpen}
+              title="Queue"
+            >
+              <ListMusic size={20} />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setPlayerState(s => ({ ...s, isExpanded: true }))} title="Lyrics & Info">
+              <Maximize2 size={20} />
+            </Button>
+          </div>
+
+          {/* Mobile Play/Pause only */}
+          <div className="md:hidden flex items-center mr-2" onClick={e => e.stopPropagation()}>
+            <Button variant="icon" onClick={togglePlay}>
+              {playerState.isPlaying ? <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center"><div className="w-3 h-3 bg-black" /></div> : <Play size={32} fill="white" />}
+            </Button>
+          </div>
         </div>
       )}
 
       {/* --- FULL PLAYER OVERLAY --- */}
       {currentTrack && playerState.isExpanded && (
-        <FullPlayer 
+        <FullPlayer
           track={currentTrack}
           playerState={playerState}
           onCollapse={() => setPlayerState(prev => ({ ...prev, isExpanded: false }))}
@@ -1855,7 +1855,7 @@ const App: React.FC = () => {
             next: nextTrack,
             prev: prevTrack,
             toggleShuffle,
-            toggleRepeat: () => setPlayerState(s => ({...s, repeatMode: s.repeatMode === RepeatMode.OFF ? RepeatMode.ALL : s.repeatMode === RepeatMode.ALL ? RepeatMode.ONE : RepeatMode.OFF})),
+            toggleRepeat: () => setPlayerState(s => ({ ...s, repeatMode: s.repeatMode === RepeatMode.OFF ? RepeatMode.ALL : s.repeatMode === RepeatMode.ALL ? RepeatMode.ONE : RepeatMode.OFF })),
             seek
           }}
         />
@@ -1874,12 +1874,12 @@ const App: React.FC = () => {
 
       {/* --- AUDIOBOOK PLAYER OVERLAY --- */}
       {activeBook && isAudiobookExpanded && (
-        <AudiobookPlayer 
-          book={activeBook} 
+        <AudiobookPlayer
+          book={activeBook}
           isPlaying={audiobookIsPlaying}
           progress={audiobookProgress}
           speed={audiobookSpeed}
-          onCollapse={() => setIsAudiobookExpanded(false)} 
+          onCollapse={() => setIsAudiobookExpanded(false)}
           onTogglePlay={audiobookTogglePlay}
           onSeek={audiobookSeek}
           onJump={audiobookJump}

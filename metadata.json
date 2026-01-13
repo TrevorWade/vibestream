@@ -1,0 +1,5 @@
+{
+  "name": "VibeStream",
+  "description": "A feature-rich local music player with smart shuffle, play statistics, and Gemini-powered lyrics analysis. Plays your local files with a sleek, dark-themed UI.",
+  "requestFramePermissions": []
+}

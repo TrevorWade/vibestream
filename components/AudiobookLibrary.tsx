@@ -56,7 +56,7 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
       if (sources.length === 0) return;
 
       const rehydrated: Audiobook[] = [];
-      
+
       for (const source of sources) {
         try {
           // Verify we still have permission to access the directory
@@ -86,7 +86,7 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
           setBooksNeedingRefresh(prev => new Set(prev).add(source.bookId));
         }
       }
-      
+
       // Merge rehydrated books into the library
       if (rehydrated.length > 0) {
         setBooks(prev => {
@@ -95,7 +95,7 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
           for (const b of rehydrated) map.set(b.id, b);
           return Array.from(map.values());
         });
-        
+
         // Load positions for rehydrated books
         const newPos: Record<string, number> = {};
         for (const b of rehydrated) {
@@ -109,26 +109,8 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
   };
 
   // Auto-select the last played book when books are loaded
-  useEffect(() => {
-    if (books.length > 0 && !hasAttemptedAutoLoad) {
-      setHasAttemptedAutoLoad(true);
-      
-      (async () => {
-        try {
-          const lastBookId = await getLastPlayedBook();
-          if (lastBookId) {
-            const lastBook = books.find(b => b.id === lastBookId);
-            if (lastBook) {
-              // Auto-select the last played book
-              onSelectBook(lastBook);
-            }
-          }
-        } catch (err) {
-          console.warn('Failed to auto-load last played book:', err);
-        }
-      })();
-    }
-  }, [books, hasAttemptedAutoLoad, onSelectBook]);
+  // Auto-load last played book logic removed
+
 
   const loadBooks = async () => {
     const storedBooks = await getAllAudiobooks();
@@ -141,7 +123,7 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
       for (const b of storedBooks) map.set(b.id, b);
       return Array.from(map.values());
     });
-    
+
     // Load positions for all books
     const posMap: Record<string, number> = {};
     for (const book of storedBooks) {
@@ -186,18 +168,22 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
 
       // Request permission to access the directory
       const permission = await (source.handle as any).requestPermission({ mode: 'read' });
-      
+
       if (permission !== 'granted') {
-        window.alert('Permission denied. Unable to refresh audiobook.');
+        // Fallback layout
+        const doImport = window.confirm('Permission denied. re-import the folder?');
+        if (doImport) {
+          fileInputRef.current?.click();
+        }
         return;
       }
 
       // Get existing metadata
       const existingMetadata = books.find(b => b.id === bookId);
-      
+
       // Rebuild the audiobook
       const refreshedBook = await rebuildAudiobookFromHandle(source, existingMetadata);
-      
+
       // Update the book in the list
       setBooks(prev => {
         const map = new Map<string, Audiobook>();
@@ -205,14 +191,14 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
         map.set(refreshedBook.id, refreshedBook);
         return Array.from(map.values());
       });
-      
+
       // Remove from refresh-needed set
       setBooksNeedingRefresh(prev => {
         const next = new Set(prev);
         next.delete(bookId);
         return next;
       });
-      
+
       // Update last accessed time
       await saveAudiobookSource(
         source.bookId,
@@ -222,33 +208,89 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
       );
     } catch (err) {
       console.error('Failed to refresh audiobook:', err);
-      window.alert('Failed to refresh audiobook. Please try importing it again.');
+      // Fallback: prompt user to re-import locally (works on mobile/desktop without handle support)
+      const doImport = window.confirm('Quick refresh unavailable. re-import the folder?');
+      if (doImport) {
+        fileInputRef.current?.click();
+      }
     }
   };
 
-  const handleImportFolder = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setIsImporting(true);
-    
-    // Try to get a directory handle for persistence (File System Access API)
-    let dirHandle: FileSystemDirectoryHandle | null = null;
+  const triggerImport = async () => {
+    // Prefer File System Access API for persistence (Desktop/Chrome)
     try {
       const anyWin = window as any;
       if (anyWin?.showDirectoryPicker) {
-        dirHandle = await anyWin.showDirectoryPicker();
+        const dirHandle = await anyWin.showDirectoryPicker();
         // Request persistent storage so handles survive browser cleanup
         await navigator?.storage?.persist?.();
+
+        // Handle logic
+        await processDirectoryHandle(dirHandle);
+        return;
       }
     } catch (err) {
-      // User cancelled or API not available - continue without handle
-      console.warn('Directory handle not available:', err);
+      if ((err as Error).name !== 'AbortError') {
+        console.warn('Directory handle not available or cancelled:', err);
+      } else {
+        // User cancelled picker
+        return;
+      }
     }
 
-    try {
-      const allFiles = Array.from(files);
+    // Fallback to legacy input (Mobile/Firefox)
+    fileInputRef.current?.click();
+  };
 
+  const handleImportFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Process flat file list
+    await processFiles(Array.from(files));
+  };
+
+  const processDirectoryHandle = async (dirHandle: FileSystemDirectoryHandle) => {
+    setIsImporting(true);
+    try {
+      // Recursively read files from the handle
+      const files: File[] = [];
+
+      const readEntries = async (handle: FileSystemDirectoryHandle, path: string) => {
+        for await (const entry of (handle as any).values()) {
+          if (entry.kind === 'file') {
+            const file = await entry.getFile();
+            // Manually patch webkitRelativePath for logic downstream if needed
+            Object.defineProperty(file, 'webkitRelativePath', {
+              value: path ? `${path}/${file.name}` : file.name
+            });
+            files.push(file);
+          } else if (entry.kind === 'directory') {
+            await readEntries(entry as FileSystemDirectoryHandle, path ? `${path}/${entry.name}` : entry.name);
+          }
+        }
+      };
+
+      await readEntries(dirHandle, dirHandle.name);
+
+      await processFiles(files, dirHandle);
+    } catch (err) {
+      console.error("Handle processing failed:", err);
+      setIsImporting(false);
+    }
+  };
+
+  // Common processing for both sources
+  // dirHandle is optional (only present if we used the API)
+  const processFiles = async (allFiles: File[], dirHandle?: FileSystemDirectoryHandle) => {
+    if (allFiles.length === 0) {
+      setIsImporting(false);
+      return;
+    }
+
+    setIsImporting(true);
+
+    try {
       // On some Android browsers, file.type can be empty for local media.
       // So we primarily rely on extension matching, with audio/* as a fallback.
       const isSupportedAudio = (f: File) => {
@@ -345,7 +387,7 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
             title: metadata.title || file.name.replace(/\.[^/.]+$/, ""),
             author: metadata.author || 'Unknown Author',
             narrator: metadata.narrator,
-            duration: 0, 
+            duration: 0,
             url: URL.createObjectURL(file),
             coverArt: metadata.coverArt,
             chapters: metadata.chapters || [{ title: "Start", startTime: 0 }]
@@ -356,7 +398,7 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
           // Best-effort persistence. If it fails (quota on mobile), the UI still works this session.
           try {
             await saveAudiobookMetadata(book);
-            
+
             // Save directory handle and file path for auto-reload on next app start
             if (dirHandle && relativePath) {
               await saveAudiobookSource(id, dirHandle, relativePath, dirHandle.name);
@@ -369,6 +411,14 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
           setImportItems(prev =>
             prev.map(it => it.id === id ? { ...it, status: 'done', progress: 100 } : it)
           );
+
+          // Clear "needs refresh" state if this book was previously asking for it
+          setBooksNeedingRefresh(prev => {
+            if (!prev.has(id)) return prev;
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
         } catch (err) {
           console.error(`Failed to process ${file.name}:`, err);
           const id = getBookKey(file);
@@ -423,9 +473,9 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
             Reminder: re-import the folder each time you visit this page so the library can read your files.
           </p>
         </div>
-        <Button 
-          variant="primary" 
-          onClick={() => fileInputRef.current?.click()}
+        <Button
+          variant="primary"
+          onClick={triggerImport}
           disabled={isImporting}
           className="flex items-center gap-2"
         >
@@ -438,7 +488,7 @@ export const AudiobookLibrary: React.FC<AudiobookLibraryProps> = ({ onSelectBook
         type="file"
         ref={fileInputRef}
         className="hidden"
-        onChange={handleImportFolder}
+        onChange={handleImportFiles}
         accept=".m4b,.m4a,.mp3,.aac,.mp4,audio/*"
         {...({ webkitdirectory: "", directory: "" } as any)}
       />

@@ -80,18 +80,18 @@ export const AudiobookMiniPlayer: React.FC<AudiobookMiniPlayerProps> = ({
               <span className="absolute text-[9px] font-bold mt-1">30</span>
             </Button>
 
-          <Button
-            variant="icon"
-            className="w-12 h-12 !bg-white !text-black rounded-full flex items-center justify-center shadow-xl"
-            onClick={onTogglePlay}
-            title={isPlaying ? 'Pause' : 'Play'}
-          >
-            {isPlaying ? (
-              <Pause size={22} className="text-black" />
-            ) : (
-              <Play size={22} className="text-black ml-0.5" />
-            )}
-          </Button>
+            <button
+              className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform"
+              onClick={onTogglePlay}
+              title={isPlaying ? 'Pause' : 'Play'}
+              style={{ color: 'black' }}
+            >
+              {isPlaying ? (
+                <Pause size={22} color="black" fill="black" />
+              ) : (
+                <Play size={22} color="black" fill="black" className="ml-0.5" />
+              )}
+            </button>
 
             <Button variant="icon" onClick={() => onJump(30)} title="Forward 30s">
               <RotateCw size={26} />
