@@ -1791,6 +1791,28 @@ const App: React.FC = () => {
 
         {/* MAIN CONTENT AREA */}
         <div className="flex-1 flex flex-col bg-gradient-to-b from-surfaceHighlight to-background overflow-hidden relative rounded-lg md:m-2 md:ml-0">
+          {activeTab === 'audiobooks' && (
+            <div className="sticky top-0 z-10 bg-black/20 backdrop-blur-md border-b border-white/5">
+              <TopHeader
+                title={
+                  <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors" onClick={() => setActiveTab('home')}>
+                    <ArrowLeft size={24} />
+                    <span>Library</span>
+                  </div>
+                }
+                right={
+                  <button
+                    onClick={() => audiobookLibraryRef.current?.triggerImport()}
+                    className="bg-[#00c2cb] text-black px-4 py-2 rounded-full font-bold text-xs flex items-center gap-2 hover:bg-[#00c2cb]/90 transition-colors"
+                  >
+                    <FolderPlus size={16} />
+                    Import Folder
+                  </button>
+                }
+              />
+            </div>
+          )}
+
           {/* Views */}
           <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
             {renderViews()}

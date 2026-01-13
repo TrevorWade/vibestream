@@ -56,7 +56,7 @@ export const AudiobookTile: React.FC<AudiobookTileProps> = ({
   }, [isImporting, coverArt]);
 
   return (
-    <div className="group flex flex-col space-y-3 min-w-0">
+    <div className="group flex flex-col space-y-3 min-w-0 relative">
       <div
         className={`aspect-square relative rounded-lg overflow-hidden shadow-lg transition-transform duration-300 ${onClick ? 'cursor-pointer group-hover:scale-105 group-hover:shadow-2xl' : ''}`}
         onClick={() => {
@@ -122,56 +122,56 @@ export const AudiobookTile: React.FC<AudiobookTileProps> = ({
             <div className="h-full bg-primary" style={{ width: `${Math.max(0, Math.min(100, progressPercent))}%` }} />
           </div>
         )}
+      </div>
 
-        {/* Tile menu (remove) */}
-        {showMenu && (
-          <div
-            className="absolute top-2 right-2 z-10"
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
+      {/* Tile menu (Moved outside overflow-hidden) */}
+      {showMenu && (
+        <div
+          className={`absolute top-2 right-2 z-30 transition-transform duration-300 ${onClick ? 'group-hover:scale-105' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-black/40 hover:bg-black/60 rounded-full"
+            title="More"
+            onClick={() => setMenuOpen(v => !v)}
           >
-            <Button
-              variant="ghost"
-              size="icon"
-              className="bg-black/40 hover:bg-black/60 rounded-full"
-              title="More"
-              onClick={() => setMenuOpen(v => !v)}
-            >
-              <MoreVertical size={16} />
-            </Button>
+            <MoreVertical size={16} />
+          </Button>
 
-            {menuOpen && (
-              <div className="absolute right-0 mt-2 w-44 bg-surface rounded-xl border border-white/10 shadow-xl overflow-hidden z-20">
-                {onRefresh && (
-                  <button
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-white/10 flex items-center gap-2 text-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onRefresh();
-                    }}
-                  >
-                    <RefreshCw size={16} />
-                    Re-import
-                  </button>
-                )}
+          {menuOpen && (
+            <div className="absolute right-0 mt-2 w-44 bg-surface rounded-xl border border-white/10 shadow-xl overflow-hidden z-20">
+              {onRefresh && (
                 <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-white/10 flex items-center gap-2 text-red-300"
-                  onClick={() => {
-                    console.log('Remove clicked inside tile');
-                    onRemove?.();
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-white/10 flex items-center gap-2 text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setMenuOpen(false);
+                    onRefresh();
                   }}
                 >
-                  <Trash2 size={16} />
-                  Remove
+                  <RefreshCw size={16} />
+                  Re-import
                 </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              )}
+              <button
+                className="w-full text-left px-3 py-2 text-sm hover:bg-white/10 flex items-center gap-2 text-red-300"
+                onClick={() => {
+                  console.log('Remove clicked inside tile');
+                  onRemove?.();
+                  setMenuOpen(false);
+                }}
+              >
+                <Trash2 size={16} />
+                Remove
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col min-w-0">
         <h4 className="font-bold text-sm truncate group-hover:text-primary transition-colors">{title}</h4>
