@@ -261,7 +261,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const playTrackInternal = (trackId: string) => {
+  const playTrackInternal = (trackId: string, isBack: boolean = false) => {
     const track = tracksRef.current.find(t => t.id === trackId);
     if (!track || !audioRef.current) return;
 
@@ -284,7 +284,7 @@ const App: React.FC = () => {
       ...prev,
       currentTrackId: trackId,
       isPlaying: true,
-      history: [...prev.history, trackId]
+      history: isBack ? prev.history.slice(0, -1) : [...prev.history, trackId]
     }));
   };
 
@@ -573,15 +573,34 @@ const App: React.FC = () => {
   };
 
   const prevTrack = () => {
-    const { queue, currentTrackId, baseQueueIndex } = playerState;
-    if (audioRef.current && audioRef.current.currentTime > 3) {
+    const { queue, currentTrackId, baseQueueIndex, history } = playerState;
+
+    // If past 5 seconds, restart track
+    if (audioRef.current && audioRef.current.currentTime > 5) {
       audioRef.current.currentTime = 0;
       return;
     }
+
+    // Try to use history first (Back button behavior)
+    if (history.length >= 2) {
+      const prevTrackId = history[history.length - 2];
+      // Optionally sync queue index if possible, but history is source of truth for "Back"
+      const queueIndex = queue.indexOf(prevTrackId);
+      if (queueIndex !== -1) {
+        setPlayerState(prev => ({ ...prev, baseQueueIndex: queueIndex }));
+      }
+      playTrackInternal(prevTrackId, true);
+      return;
+    }
+
+    // Fallback to queue index
     const prevIndex = baseQueueIndex - 1;
     if (prevIndex >= 0) {
       setPlayerState(prev => ({ ...prev, baseQueueIndex: prevIndex }));
       playTrack(queue[prevIndex]);
+    } else {
+      // If at start of queue and no history, just restart
+      if (audioRef.current) audioRef.current.currentTime = 0;
     }
   };
 
@@ -612,7 +631,7 @@ const App: React.FC = () => {
   };
 
   // Play a track and replace the base queue with a randomized version of the context.
-  const playInContext = (trackId: string, contextIds: string[]) => {
+  const playInContext = (trackId: string, contextIds: string[], contextName: string = 'Library') => {
     const randomized = buildRandomizedQueue(contextIds, trackId);
     setPlayerState(prev => ({
       ...prev,
@@ -623,6 +642,7 @@ const App: React.FC = () => {
       // We explicitly set the order, keep shuffle off for determinism
       shuffleMode: ShuffleMode.OFF,
       baseQueueIndex: 0,
+      contextName,
     }));
     playTrackInternal(trackId);
   };
@@ -639,6 +659,47 @@ const App: React.FC = () => {
   const clearUpNext = () => {
     setPlayerState(prev => ({ ...prev, upNext: [] }));
   };
+
+  const removeFromQueue = (trackId: string) => {
+    setPlayerState(prev => ({
+      ...prev,
+      upNext: prev.upNext.filter(id => id !== trackId),
+      queue: prev.queue.filter(id => id !== trackId),
+    }));
+  };
+
+  const handleQueueReorder = (fromIndex: number, toIndex: number) => {
+    setPlayerState(prev => {
+      const newUpNext = [...prev.upNext];
+      const [moved] = newUpNext.splice(fromIndex, 1);
+      newUpNext.splice(toIndex, 0, moved);
+      return { ...prev, upNext: newUpNext };
+    });
+  };
+
+  const handleQueueReorderUpcoming = (fromIndex: number, toIndex: number) => {
+    // Reorders the *upcoming* segment of the queue (after baseQueueIndex)
+    setPlayerState(prev => {
+      const { queue, baseQueueIndex } = prev;
+      // The slice displayed as "Upcoming" starts at baseQueueIndex + 1
+      const startIndex = baseQueueIndex + 1;
+
+      // Safety check
+      if (startIndex >= queue.length) return prev;
+
+      const newQueue = [...queue];
+      const absoluteFrom = startIndex + fromIndex;
+      const absoluteTo = startIndex + toIndex;
+
+      if (absoluteFrom >= newQueue.length || absoluteTo >= newQueue.length) return prev;
+
+      const [moved] = newQueue.splice(absoluteFrom, 1);
+      newQueue.splice(absoluteTo, 0, moved);
+      return { ...prev, queue: newQueue };
+    });
+  };
+
+
 
   const getUpcomingAfterCurrent = (): Track[] => {
     const { queue, baseQueueIndex } = playerState;
@@ -1044,7 +1105,10 @@ const App: React.FC = () => {
                         isCurrent={track.id === playerState.currentTrackId}
                         onPlay={() => {
                           const ids = getTracksForPlaylist(selectedPlaylistId).map(t => t.id);
-                          playInContext(track.id, ids);
+                          const plName = selectedPlaylistId === 'all'
+                            ? 'All Songs'
+                            : (playlists.find(p => p.id === selectedPlaylistId)?.name || 'Playlist');
+                          playInContext(track.id, ids, plName);
                         }}
                         playlists={playlists}
                         onAddToQueue={() => addTrackToQueue(track.id)}
@@ -1105,7 +1169,7 @@ const App: React.FC = () => {
                         isCurrent={track.id === playerState.currentTrackId}
                         onPlay={() => {
                           const ids = tracks.map(t => t.id);
-                          playInContext(track.id, ids);
+                          playInContext(track.id, ids, 'Library');
                         }}
                         playlists={playlists}
                         onAddToQueue={() => addTrackToQueue(track.id)}
@@ -1438,7 +1502,7 @@ const App: React.FC = () => {
             tracks={tracks}
             currentTrackId={playerState.currentTrackId}
             onOpenPlaylist={(id) => setSelectedPlaylistId(id)}
-            onPlayInContext={(trackId, contextIds) => playInContext(trackId, contextIds)}
+            onPlayInContext={(trackId, contextIds) => playInContext(trackId, contextIds, 'Library')}
             onOpenAudiobooks={() => setActiveTab('audiobooks')}
           />
         ) : activeTab === 'search' ? (
@@ -1866,11 +1930,9 @@ const App: React.FC = () => {
       {/* --- BOTTOM PLAYER (Music) --- */}
       {currentTrack && !playerState.isExpanded && !activeBook && (
         <div
-          className="hidden md:flex h-20 bg-surface border-t border-white/5 px-4 items-center justify-between z-40 relative cursor-pointer md:cursor-auto"
+          className="hidden md:flex h-20 bg-surface border-t border-white/5 px-4 items-center justify-between z-40 relative cursor-pointer"
           onClick={(e) => {
-            if (window.innerWidth < 768) {
-              setPlayerState(s => ({ ...s, isExpanded: true }));
-            }
+            setPlayerState(s => ({ ...s, isExpanded: true }));
           }}
         >
           {/* Left: Track Info */}
@@ -1976,7 +2038,8 @@ const App: React.FC = () => {
             prev: prevTrack,
             toggleShuffle,
             toggleRepeat: () => setPlayerState(s => ({ ...s, repeatMode: s.repeatMode === RepeatMode.OFF ? RepeatMode.ALL : s.repeatMode === RepeatMode.ALL ? RepeatMode.ONE : RepeatMode.OFF })),
-            seek
+            seek,
+            toggleQueue: () => setPlayerState(s => ({ ...s, isQueueOpen: !s.isQueueOpen }))
           }}
         />
       )}
@@ -1988,8 +2051,13 @@ const App: React.FC = () => {
         nowPlaying={currentTrack}
         upNextItems={playerState.upNext.map(id => tracks.find(t => t.id === id)).filter(Boolean) as Track[]}
         upcomingItems={getUpcomingAfterCurrent()}
+        contextName={playerState.contextName}
         onPlay={playFromQueue}
         onClearUpNext={clearUpNext}
+        onRemoveFromQueue={removeFromQueue}
+        onAddToUpNext={addTrackToQueue}
+        onReorder={handleQueueReorder}
+        onReorderUpcoming={handleQueueReorderUpcoming}
       />
 
       {/* --- AUDIOBOOK PLAYER OVERLAY --- */}

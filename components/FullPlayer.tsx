@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { ChevronDown, MessageSquareQuote, Music } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronDown, MessageSquareQuote, Music, ListMusic } from 'lucide-react';
 import { Track, PlayerState } from '../types';
 import { PlayerControls } from './PlayerControls';
 import { Button } from './Button';
+import { fetchLyrics, parseLRC, getCurrentLyric, LyricLine } from '../services/lyrics';
 
 interface FullPlayerProps {
   track: Track;
@@ -15,6 +16,7 @@ interface FullPlayerProps {
     toggleShuffle: () => void;
     toggleRepeat: () => void;
     seek: (time: number) => void;
+    toggleQueue: () => void;
   };
 }
 
@@ -25,8 +27,77 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
   controls
 }) => {
   const [showLyrics, setShowLyrics] = useState(false);
+  const [syncedLyrics, setSyncedLyrics] = useState<LyricLine[] | null>(null);
+  const [activeLine, setActiveLine] = useState<LyricLine | null>(null);
+  const [loadingLyrics, setLoadingLyrics] = useState(false);
+
+  const lyricsContainerRef = useRef<HTMLDivElement>(null);
+  const activeLineRef = useRef<HTMLDivElement>(null);
 
   const bgGradient = `linear-gradient(to bottom, ${playerState.isPlaying ? '#4c1d95' : '#1f2937'}, #121212)`;
+
+  // Fetch lyrics when track changes
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadLyrics = async () => {
+      // Reset state
+      setSyncedLyrics(null);
+      setActiveLine(null);
+
+      if (!track) return;
+
+      // If track already has local lyrics, use them (might be unsynced, but check if they look like LRC)
+      if (track.lyrics) {
+        // Simple heuristic: if it contains timestamp brackets, treat as synced
+        if (/\[\d{2}:\d{2}\.\d{2}\]/.test(track.lyrics)) {
+          setSyncedLyrics(parseLRC(track.lyrics));
+        } else {
+          // Plain text lyrics, no sync
+          setSyncedLyrics(null);
+        }
+        return;
+      }
+
+      setLoadingLyrics(true);
+      try {
+        const rawLrc = await fetchLyrics(track.title, track.artist, track.album, track.duration);
+        if (isMounted && rawLrc) {
+          const parsed = parseLRC(rawLrc);
+          setSyncedLyrics(parsed);
+        }
+      } catch (err) {
+        console.error("Error loading lyrics", err);
+      } finally {
+        if (isMounted) setLoadingLyrics(false);
+      }
+    };
+
+    loadLyrics();
+
+    return () => { isMounted = false; };
+  }, [track?.id, track?.title, track?.artist]);
+
+  // Sync lyrics with progress
+  useEffect(() => {
+    if (syncedLyrics) {
+      const current = getCurrentLyric(playerState.progress, syncedLyrics);
+      if (current !== activeLine) {
+        setActiveLine(current);
+      }
+    }
+  }, [playerState.progress, syncedLyrics]);
+
+  // Auto-scroll to active line
+  useEffect(() => {
+    if (showLyrics && activeLineRef.current && lyricsContainerRef.current) {
+      activeLineRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest'
+      });
+    }
+  }, [activeLine, showLyrics]);
 
   return (
     <div
@@ -57,15 +128,45 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
               </div>
             )
           ) : (
-            <div className="w-full h-full bg-black/40 backdrop-blur-md p-6 overflow-y-auto rounded-lg border border-white/10">
-              {track.lyrics ? (
+            <div
+              ref={lyricsContainerRef}
+              className="w-full h-full bg-black/40 backdrop-blur-md p-6 overflow-y-auto rounded-lg border border-white/10 no-scrollbar"
+            >
+              {loadingLyrics ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-textSub animate-pulse">Searching for lyrics...</p>
+                </div>
+              ) : syncedLyrics && syncedLyrics.length > 0 ? (
+                <div className="flex flex-col space-y-4 py-10 text-center">
+                  {syncedLyrics.map((line, idx) => {
+                    const isActive = activeLine === line;
+                    return (
+                      <div
+                        key={idx}
+                        ref={isActive ? activeLineRef : null}
+                        className={`transition-all duration-300 px-2 rounded-lg ${isActive ? 'scale-105 origin-center' : ''}`}
+                      >
+                        <p
+                          className={`text-lg transition-colors duration-300 ${isActive
+                              ? 'text-white font-bold drop-shadow-md'
+                              : 'text-textSub/60 hover:text-textSub/80'
+                            }`}
+                        >
+                          {line.text}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : track.lyrics ? (
+                // Fallback to local unsynced lyrics
                 <div className="whitespace-pre-wrap text-lg leading-relaxed font-medium text-textMain/90">
                   {track.lyrics}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                  <p className="text-textSub">No lyrics available locally.</p>
-                  <p className="text-xs text-textSub/50">Ensure a .lrc or .txt file with the same name exists in the folder.</p>
+                  <p className="text-textSub">No lyrics found.</p>
+                  <p className="text-xs text-textSub/50">Could not find lyrics on LRCLIB or locally.</p>
                 </div>
               )}
             </div>
@@ -110,11 +211,24 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
         />
 
         {/* Play Count Stats */}
-        <div className="text-xs text-textSub tracking-wide bg-surface/50 px-3 py-1 rounded-full">
+        <div className="text-xs text-textSub tracking-wide bg-surface/50 px-3 py-1 rounded-full mb-8">
           Played {track.playCount} times
         </div>
 
       </div>
+
+      {/* Bottom Right Queue Button */}
+      <div className="absolute right-6 bottom-8 z-30">
+        <Button
+          variant="secondary"
+          className="shadow-xl bg-[#282828] text-white hover:bg-[#3E3E3E] !p-3 rounded-full"
+          onClick={controls.toggleQueue}
+        >
+          <ListMusic size={24} />
+          <span className="sr-only">Queue</span>
+        </Button>
+      </div>
+
     </div>
   );
 };

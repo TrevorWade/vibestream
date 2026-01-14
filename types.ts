@@ -77,4 +77,5 @@ export interface PlayerState {
   upNext: string[]; // Tracks to play next (FIFO)
   isQueueOpen?: boolean; // Right-side queue drawer visibility
   baseQueueIndex: number; // Index in the base queue, unaffected by Up Next
+  contextName?: string; // Name of playlist/album context
 }

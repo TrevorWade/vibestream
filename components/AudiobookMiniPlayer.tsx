@@ -61,9 +61,12 @@ export const AudiobookMiniPlayer: React.FC<AudiobookMiniPlayerProps> = ({
   return (
     <>
       {/* --- DESKTOP VIEW --- */}
-      <div className="hidden md:flex h-20 bg-surface border-t border-white/5 px-4 items-center justify-between z-40 relative">
+      <div
+        className="hidden md:flex h-20 bg-surface border-t border-white/5 px-4 items-center justify-between z-40 relative cursor-pointer"
+        onClick={onExpand}
+      >
         {/* Left: Book info */}
-        <div className="flex items-center gap-4 w-1/3 min-w-0 cursor-pointer" onClick={onExpand}>
+        <div className="flex items-center gap-4 w-1/3 min-w-0">
           <div className="w-14 h-14 rounded-md overflow-hidden bg-surfaceHighlight shadow-lg flex-shrink-0">
             {book.coverArt ? (
               <img src={book.coverArt} alt={book.title} className="w-full h-full object-cover" />
@@ -78,7 +81,7 @@ export const AudiobookMiniPlayer: React.FC<AudiobookMiniPlayerProps> = ({
         </div>
 
         {/* Center: controls */}
-        <div className="flex flex-col items-center max-w-md w-1/3 px-4">
+        <div className="flex flex-col items-center max-w-md w-1/3 px-4" onClick={e => e.stopPropagation()}>
           <div className="flex items-center gap-6">
             <Button variant="icon" onClick={() => onJump(-30)} title="Rewind 30s">
               <RotateCcw size={26} />
