@@ -43,9 +43,9 @@ body {
  */
 :root {
   /* Rough Spotify-like bottom tab bar height. */
-  --vs-bottom-tabs: 56px;
+  --vs-bottom-tabs: 80px;
   /* Our mini player typically sits above tabs. */
-  --vs-mini-player: 64px;
+  --vs-mini-player: 80px;
 }
 
 .vs-pad-for-tabs {
