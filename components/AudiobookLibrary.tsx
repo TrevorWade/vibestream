@@ -536,7 +536,7 @@ export const AudiobookLibrary = forwardRef<AudiobookLibraryHandle, AudiobookLibr
     type HandleInfo = { root: FileSystemDirectoryHandle, path: string };
     const validHandles = new Map<string, HandleInfo>();
 
-    const readEntries = async (entry: any, path: string = '', rootHandle?: FileSystemDirectoryHandle) => {
+    const readEntry = async (entry: any, path: string = '', rootHandle?: FileSystemDirectoryHandle) => {
       if (entry.isFile) {
         try {
           const file = await new Promise<File>((resolve, reject) => entry.file(resolve, reject));
