@@ -180,8 +180,13 @@ const App: React.FC = () => {
   const [audiobookSpeed, setAudiobookSpeed] = useState(1.0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
+  const [playlistSearchQuery, setPlaylistSearchQuery] = useState('');
   const [playlistSort, setPlaylistSort] = useState<Record<string, 'recent' | 'title' | 'artist' | 'album'>>({});
   const [playlistSortDir, setPlaylistSortDir] = useState<Record<string, 'asc' | 'desc'>>({});
+
+  useEffect(() => {
+    setPlaylistSearchQuery('');
+  }, [selectedPlaylistId]);
 
   const [playerState, setPlayerState] = useState<PlayerState>({
     currentTrackId: null,
@@ -966,6 +971,16 @@ const App: React.FC = () => {
                     : (playlists.find(p => p.id === selectedPlaylistId)?.name || 'Playlist')}
                 </h2>
                 <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-textSub" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Filter tracks..."
+                      value={playlistSearchQuery}
+                      onChange={(e) => setPlaylistSearchQuery(e.target.value)}
+                      className="bg-surface text-sm text-textMain border border-divider rounded-md pl-8 pr-3 py-1 focus:outline-none focus:border-primary w-40 sm:w-64"
+                    />
+                  </div>
                   <select
                     className="bg-surface text-sm text-textMain border border-divider rounded-md px-2 py-1"
                     value={playlistSort[selectedPlaylistId] || 'recent'}
@@ -996,31 +1011,51 @@ const App: React.FC = () => {
                 </div>
               </div>
               <div className="bg-black/20 rounded-lg p-2">
-                {getSortedTracksForPlaylist(selectedPlaylistId).length === 0 ? (
+                {getSortedTracksForPlaylist(selectedPlaylistId)
+                  .filter(track => {
+                    if (!playlistSearchQuery) return true;
+                    const q = playlistSearchQuery.toLowerCase();
+                    return (
+                      (track.title || '').toLowerCase().includes(q) ||
+                      (track.artist || '').toLowerCase().includes(q) ||
+                      (track.album || '').toLowerCase().includes(q)
+                    );
+                  })
+                  .length === 0 ? (
                   <div className="text-center py-10 text-textSub">
-                    No tracks in this playlist.
+                    {playlistSearchQuery ? 'No matching tracks found.' : 'No tracks in this playlist.'}
                   </div>
                 ) : (
-                  getSortedTracksForPlaylist(selectedPlaylistId).map((track, i) => (
-                    <TrackRow
-                      key={track.id}
-                      track={track}
-                      index={i}
-                      isCurrent={track.id === playerState.currentTrackId}
-                      onPlay={() => {
-                        const ids = getTracksForPlaylist(selectedPlaylistId).map(t => t.id);
-                        playInContext(track.id, ids);
-                      }}
-                      playlists={playlists}
-                      onAddToQueue={() => addTrackToQueue(track.id)}
-                      onAddToPlaylist={(plId) => addTrackToPlaylist(track.id, plId)}
-                      onRemoveFromPlaylist={
-                        selectedPlaylistId && selectedPlaylistId !== 'all'
-                          ? () => removeTrackFromPlaylist(track.id, selectedPlaylistId)
-                          : undefined
-                      }
-                    />
-                  ))
+                  getSortedTracksForPlaylist(selectedPlaylistId)
+                    .filter(track => {
+                      if (!playlistSearchQuery) return true;
+                      const q = playlistSearchQuery.toLowerCase();
+                      return (
+                        (track.title || '').toLowerCase().includes(q) ||
+                        (track.artist || '').toLowerCase().includes(q) ||
+                        (track.album || '').toLowerCase().includes(q)
+                      );
+                    })
+                    .map((track, i) => (
+                      <TrackRow
+                        key={track.id}
+                        track={track}
+                        index={i}
+                        isCurrent={track.id === playerState.currentTrackId}
+                        onPlay={() => {
+                          const ids = getTracksForPlaylist(selectedPlaylistId).map(t => t.id);
+                          playInContext(track.id, ids);
+                        }}
+                        playlists={playlists}
+                        onAddToQueue={() => addTrackToQueue(track.id)}
+                        onAddToPlaylist={(plId) => addTrackToPlaylist(track.id, plId)}
+                        onRemoveFromPlaylist={
+                          selectedPlaylistId && selectedPlaylistId !== 'all'
+                            ? () => removeTrackFromPlaylist(track.id, selectedPlaylistId)
+                            : undefined
+                        }
+                      />
+                    ))
                 )}
               </div>
             </div>

@@ -100,17 +100,20 @@ export const AudiobookTile: React.FC<AudiobookTileProps> = ({
 
         {/* Refresh button overlay (for failed auto-reloads) */}
         {needsRefresh && onRefresh && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
+          <div className="absolute inset-0 z-20 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center gap-2 animate-in fade-in duration-300">
             <div
               onClick={(e) => {
                 e.stopPropagation();
                 onRefresh();
               }}
-              className="flex flex-col items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+              className="group/refresh flex flex-col items-center gap-2 cursor-pointer transition-transform hover:scale-105"
             >
-              <RefreshCw size={32} className="text-white" />
-              <span className="text-xs font-bold text-white/90 uppercase tracking-wider">
-                Re-import book
+              <RefreshCw size={32} className="text-red-400 group-hover/refresh:text-red-300 group-hover/refresh:rotate-180 transition-all duration-500" />
+              <span className="text-xs font-bold text-red-100 uppercase tracking-wider">
+                Source Missing
+              </span>
+              <span className="text-[10px] text-white/60 bg-white/10 px-2 py-0.5 rounded-full">
+                Tap to Fix
               </span>
             </div>
           </div>

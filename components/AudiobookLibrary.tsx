@@ -67,20 +67,32 @@ export const AudiobookLibrary = forwardRef<AudiobookLibraryHandle, AudiobookLibr
       if (sources.length === 0) return;
 
       const rehydrated: Audiobook[] = [];
+      const needingRefresh = new Set<string>();
 
+      // Process serially to avoid jamming the IDB/File handles on startup
       for (const source of sources) {
         try {
-          // Verify we still have permission to access the directory
-          // Try to access the handle - this will throw if permission is denied
+          // Verify we can verify the directory handle
           await source.handle.getDirectoryHandle('.');
 
-          // If we get here, we have permission
-          // Try to get existing metadata from IndexedDB first
+          // Attempt to resolve the specific file to ensure it still exists.
+          // source.filePath is relative to the handle.
+          // We need to walk the path to verify existence.
+          const parts = source.filePath.split('/').filter(p => p && p !== '.');
+          let currentHandle = source.handle;
+
+          // Verify full path exists
+          for (let i = 0; i < parts.length - 1; i++) {
+            currentHandle = await currentHandle.getDirectoryHandle(parts[i]);
+          }
+          // specific verification of the file
+          await currentHandle.getFileHandle(parts[parts.length - 1]);
+
+          // If we get here, we have permission and file exists
           const existingMetadata = await getAllAudiobooks().then(books =>
             books.find(b => b.id === source.bookId)
           );
 
-          // Rebuild the audiobook from the saved handle
           const book = await rebuildAudiobookFromHandle(source, existingMetadata);
           rehydrated.push(book);
 
@@ -92,11 +104,16 @@ export const AudiobookLibrary = forwardRef<AudiobookLibraryHandle, AudiobookLibr
             source.folderName
           );
         } catch (err) {
-          // Permission denied or other error - book will need manual refresh
           console.warn(`Failed to access audiobook ${source.bookId}:`, err);
-          setBooksNeedingRefresh(prev => new Set(prev).add(source.bookId));
+          needingRefresh.add(source.bookId);
         }
       }
+
+      setBooksNeedingRefresh(prev => {
+        const next = new Set(prev);
+        for (const id of needingRefresh) next.add(id);
+        return next;
+      });
 
       // Merge rehydrated books into the library
       if (rehydrated.length > 0) {
@@ -114,6 +131,27 @@ export const AudiobookLibrary = forwardRef<AudiobookLibraryHandle, AudiobookLibr
         }
         setPositions(prev => ({ ...prev, ...newPos }));
       }
+
+      // CRITICAL: Validate that all *stored* books have a valid rehydrated source.
+      // If a book is in IDB but not in our 'rehydrated' list, it means we either:
+      // A) Have no source for it (Drag & Drop without handle)
+      // B) Have a source but it failed the check above
+      // In either case, the Blob URL is dead, so it needs refresh.
+      const allStoredBooks = await getAllAudiobooks();
+      const rehydratedIds = new Set(rehydrated.map(b => b.id));
+
+      for (const book of allStoredBooks) {
+        if (!rehydratedIds.has(book.id)) {
+          needingRefresh.add(book.id);
+        }
+      }
+
+      setBooksNeedingRefresh(prev => {
+        const next = new Set(prev);
+        for (const id of needingRefresh) next.add(id);
+        return next;
+      });
+
     } catch (err) {
       console.error('Failed to rehydrate audiobooks:', err);
     }
@@ -152,6 +190,10 @@ export const AudiobookLibrary = forwardRef<AudiobookLibraryHandle, AudiobookLibr
     if (!removeBookTarget) return;
     const book = removeBookTarget;
 
+    // Optimistic update: Remove immediately from UI
+    setBooks(prev => prev.filter(b => b.id !== book.id));
+    setRemoveBookTarget(null);
+
     try {
       await deleteAudiobook(book.id);
       if (deleteData) {
@@ -159,15 +201,10 @@ export const AudiobookLibrary = forwardRef<AudiobookLibraryHandle, AudiobookLibr
       }
       // Always remove the saved directory handle reference
       await removeAudiobookSource(book.id);
-
-      // Explicitly remove from local state to update UI immediately
-      setBooks(prev => prev.filter(b => b.id !== book.id));
     } catch (e) {
       console.error('Remove failed', e);
-    } finally {
-      // We still reload to ensure sync, but the setBooks above handles the immediate UI feedback
+      // Revert if failed (optional, but good practice. For now, we assume success or reload)
       await loadBooks();
-      setRemoveBookTarget(null);
     }
   };
 
@@ -358,40 +395,34 @@ export const AudiobookLibrary = forwardRef<AudiobookLibraryHandle, AudiobookLibr
       setImportItems(placeholders);
 
       const sessionBooks: Audiobook[] = [];
+      const CONCURRENCY_LIMIT = 4;
 
-      for (const file of audioFiles) {
+      // Parallel processing helper
+      const processFile = async (file: File) => {
+        const id = getBookKey(file);
         try {
-          const id = getBookKey(file);
-
-          // Mark as processing and nudge progress so the fill animation starts.
+          // Mark as processing
           setImportItems(prev =>
-            prev.map(it => it.id === id ? { ...it, status: 'processing', progress: Math.max(it.progress, 10) } : it)
+            prev.map(it => it.id === id ? { ...it, status: 'processing', progress: 10 } : it)
           );
 
-          /**
-           * Metadata extraction:
-           * - `extractMetadata()` can fail for many reasons (corrupt tags, unsupported codecs, etc).
-           * - When it fails, we continue with defaults instead of aborting the import.
-           * - We type the result as a Partial so TS knows fields are optional.
-           */
           type Extracted = Partial<Pick<Audiobook, 'title' | 'author' | 'narrator' | 'coverArt' | 'chapters'>>;
           const metadata: Extracted = await extractMetadata(file).catch((err) => {
             console.warn(`Metadata extraction error for ${file.name}`, err);
             return {} as Extracted;
           });
 
-          // Update tile with whatever we learned (coverArt makes the ghost cover visible).
+          // Update tile with whatever we learned
           setImportItems(prev =>
             prev.map(it => it.id === id ? {
               ...it,
               title: metadata.title || it.title,
               author: metadata.author || it.author,
               coverArt: metadata.coverArt || it.coverArt,
-              progress: Math.max(it.progress, 70),
+              progress: 70,
             } : it)
           );
 
-          // Extract relative path from webkitRelativePath (if available)
           const relativePath = (file as any).webkitRelativePath || file.name;
 
           const book: Audiobook = {
@@ -406,49 +437,62 @@ export const AudiobookLibrary = forwardRef<AudiobookLibraryHandle, AudiobookLibr
             coverArt: metadata.coverArt,
             chapters: metadata.chapters || [{ title: "Start", startTime: 0 }]
           };
-          // Always add to in-memory list so mobile users can see/play immediately.
+
           sessionBooks.push(book);
 
-          // Best-effort persistence. If it fails (quota on mobile), the UI still works this session.
+          // Persistence
           try {
             await saveAudiobookMetadata(book);
-
-            // Save directory handle and file path for auto-reload on next app start
             if (dirHandle && relativePath) {
               await saveAudiobookSource(id, dirHandle, relativePath, dirHandle.name);
             }
           } catch (err) {
-            console.warn('Failed to persist audiobook metadata (likely storage quota)', err);
+            console.warn('Failed to persist audiobook metadata', err);
           }
 
-          // Mark tile done.
+          // Mark tile done
           setImportItems(prev =>
             prev.map(it => it.id === id ? { ...it, status: 'done', progress: 100 } : it)
           );
 
-          // Clear "needs refresh" state if this book was previously asking for it
+          // Clear "needs refresh" state if needed
           setBooksNeedingRefresh(prev => {
             if (!prev.has(id)) return prev;
             const next = new Set(prev);
             next.delete(id);
             return next;
           });
+
+          // Add to session books immediately for responsiveness
+          setBooks(prev => {
+            const map = new Map<string, Audiobook>();
+            for (const b of prev) map.set(b.id, b);
+            map.set(book.id, book);
+            return Array.from(map.values());
+          });
         } catch (err) {
           console.error(`Failed to process ${file.name}:`, err);
-          const id = getBookKey(file);
           setImportItems(prev =>
             prev.map(it => it.id === id ? { ...it, status: 'error', progress: 100 } : it)
           );
         }
-      }
+      };
 
-      // Merge imported books into UI immediately.
-      setBooks(prev => {
-        const map = new Map<string, Audiobook>();
-        for (const b of prev) map.set(b.id, b);
-        for (const b of sessionBooks) map.set(b.id, b);
-        return Array.from(map.values());
-      });
+      // Run with concurrency limit
+      const queue = [...audioFiles];
+      const activepromises = new Set<Promise<void>>();
+
+      while (queue.length > 0 || activepromises.size > 0) {
+        if (queue.length > 0 && activepromises.size < CONCURRENCY_LIMIT) {
+          const file = queue.shift()!;
+          const promise = processFile(file).then(() => {
+            activepromises.delete(promise);
+          });
+          activepromises.add(promise);
+        } else {
+          await Promise.race(activepromises);
+        }
+      }
 
       // Hydrate positions for newly added books.
       const newPos: Record<string, number> = {};
@@ -457,15 +501,13 @@ export const AudiobookLibrary = forwardRef<AudiobookLibraryHandle, AudiobookLibr
       }
       setPositions(prev => ({ ...prev, ...newPos }));
 
-      // Also attempt to reload stored books (merge-safe) so desktop continues to persist cleanly.
       await loadBooks();
     } catch (error) {
       console.error("Import failed:", error);
     } finally {
       setIsImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      // Clear placeholders shortly after finishing so the grid becomes “real” books only.
-      window.setTimeout(() => setImportItems([]), 600);
+      window.setTimeout(() => setImportItems([]), 1000);
     }
   };
 
@@ -477,8 +519,100 @@ export const AudiobookLibrary = forwardRef<AudiobookLibraryHandle, AudiobookLibr
 
   const showImportGrid = isImporting && importItems.length > 0;
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const items = Array.from(e.dataTransfer.items || []);
+    const files: File[] = [];
+
+    // Store potential handles to save later if possible
+    // Map of filepath -> directory handle (root)
+    type HandleInfo = { root: FileSystemDirectoryHandle, path: string };
+    const validHandles = new Map<string, HandleInfo>();
+
+    const readEntries = async (entry: any, path: string = '', rootHandle?: FileSystemDirectoryHandle) => {
+      if (entry.isFile) {
+        try {
+          const file = await new Promise<File>((resolve, reject) => entry.file(resolve, reject));
+          // Patch relative path
+          const fullPath = path ? `${path}/${file.name}` : file.name;
+          Object.defineProperty(file, 'webkitRelativePath', {
+            value: fullPath
+          });
+
+          // If we have a root handle for this entry, track it for saving later
+          if (rootHandle) {
+            validHandles.set(fullPath, { root: rootHandle, path: fullPath });
+          }
+          files.push(file);
+        } catch (err) {
+          console.warn('Failed to read file entry', err);
+        }
+      } else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        const readBatch = async () => {
+          const batch = await new Promise<any[]>((resolve, reject) => reader.readEntries(resolve, reject));
+          if (batch.length > 0) {
+            for (const child of batch) {
+              await readEntry(child, path ? `${path}/${entry.name}` : entry.name, rootHandle);
+            }
+            await readBatch(); // Continue reading until empty
+          }
+        };
+        await readBatch();
+      }
+    };
+
+    setIsImporting(true);
+
+    try {
+      for (const item of items) {
+        // Try to get a handle first (modern API)
+        let rootHandle: FileSystemDirectoryHandle | undefined;
+        try {
+          // @ts-ignore
+          const handle = await item.getAsFileSystemHandle();
+          if (handle && handle.kind === 'directory') {
+            rootHandle = handle;
+          }
+        } catch (e) {
+          // Fallback or ignore
+        }
+
+        const entry = item.webkitGetAsEntry();
+        if (entry) {
+          await readEntry(entry, '', rootHandle);
+        }
+      }
+
+      if (files.length > 0) {
+        let primaryHandle: FileSystemDirectoryHandle | undefined = undefined;
+        const uniqueRoots = new Set(Array.from(validHandles.values()).map(v => v.root));
+        if (uniqueRoots.size === 1) {
+          primaryHandle = uniqueRoots.values().next().value;
+        }
+        await processFiles(files, primaryHandle);
+      } else {
+        setIsImporting(false);
+      }
+    } catch (err) {
+      console.error("Drop failed", err);
+      setIsImporting(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col space-y-8 p-6 animate-in fade-in duration-500">
+    <div
+      className="flex flex-col space-y-8 p-6 animate-in fade-in duration-500 min-h-[50vh]"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       {/* Header removed as per request */}
 
       <input
@@ -504,11 +638,11 @@ export const AudiobookLibrary = forwardRef<AudiobookLibraryHandle, AudiobookLibr
           ))}
         </div>
       ) : books.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-surface/30 rounded-2xl border-2 border-dashed border-white/5">
+        <div className="flex flex-col items-center justify-center py-20 bg-surface/30 rounded-2xl border-2 border-dashed border-white/5 transition-colors hover:bg-surface/50 hover:border-white/10">
           <BookOpen size={64} className="text-textSub mb-4 opacity-20" />
           <h3 className="text-xl font-medium mb-2">No audiobooks found</h3>
           <p className="text-textSub mb-6 text-center max-w-xs">
-            Import a folder containing your .m4b or .m4a audiobooks to get started.
+            Drag & drop files here, or click below to import a folder.
           </p>
           <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>
             Choose Folder

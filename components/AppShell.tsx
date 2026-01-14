@@ -27,7 +27,7 @@ export function AppShell(props: {
   const { header, children, bottom, hasMiniPlayer } = props;
 
   return (
-    <div className="md:hidden h-screen bg-background text-textMain">
+    <div className="md:hidden flex flex-col h-screen overflow-hidden bg-background text-textMain">
       {/* Sticky header area */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-divider vs-safe-top">
         {header}
