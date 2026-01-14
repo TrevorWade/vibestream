@@ -43,9 +43,9 @@ body {
  */
 :root {
   /* Rough Spotify-like bottom tab bar height. */
-  --vs-bottom-tabs: 80px;
+  --vs-bottom-tabs: 120px;
   /* Our mini player typically sits above tabs. */
-  --vs-mini-player: 80px;
+  --vs-mini-player: 100px;
 }
 
 .vs-pad-for-tabs {
@@ -53,9 +53,7 @@ body {
 }
 
 .vs-pad-for-tabs-and-mini {
-  padding-bottom: calc(
-    env(safe-area-inset-bottom) + var(--vs-bottom-tabs) + var(--vs-mini-player)
-  );
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--vs-bottom-tabs) + var(--vs-mini-player));
 }
 
 /**
@@ -77,10 +75,11 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
 .line-clamp-1 {
   -webkit-line-clamp: 1;
 }
+
 .line-clamp-2 {
   -webkit-line-clamp: 2;
 }
-
