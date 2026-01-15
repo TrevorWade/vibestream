@@ -3,6 +3,9 @@ import { Playlist, Track } from '../types';
 import { ChipRow } from '../components/ChipRow';
 import { MobileTrackRow } from '../components/MobileTrackRow';
 
+import { ListMusic } from 'lucide-react';
+import { MediaTile } from '../components/MediaTile';
+
 /**
  * Spotify-style Home screen (mobile).
  *
@@ -37,6 +40,11 @@ export function HomeView(props: {
     return list.slice(-100).reverse();
   }, [tracks]);
 
+  const recentPlaylists = useMemo(() => {
+    // Show last 6 playlists
+    return [...playlists].slice(-6).reverse();
+  }, [playlists]);
+
   return (
     <div className="space-y-5">
       <ChipRow
@@ -54,6 +62,28 @@ export function HomeView(props: {
           { value: 'audiobooks', label: 'Audiobooks' },
         ]}
       />
+
+      {/* Recents Grid (Playlists) */}
+      <section className="px-4">
+        <div className="grid grid-cols-2 gap-2">
+          {recentPlaylists.map(pl => {
+            // Find cover art from first track
+            const firstTrackId = pl.trackIds[0];
+            const firstTrack = firstTrackId ? tracks.find(t => t.id === firstTrackId) : null;
+            const art = firstTrack?.coverArt;
+
+            return (
+              <MediaTile
+                key={pl.id}
+                title={pl.name}
+                image={art}
+                icon={<ListMusic className="text-textSub" />}
+                onClick={() => onOpenPlaylist(pl.id)}
+              />
+            );
+          })}
+        </div>
+      </section>
 
       {/* Recently added */}
       <section className="px-4 pb-2">

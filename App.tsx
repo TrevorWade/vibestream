@@ -1025,21 +1025,56 @@ const App: React.FC = () => {
           {selectedPlaylistId ? (
             // Playlist Detail View
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold">
-                  {selectedPlaylistId === 'all'
-                    ? 'All Songs'
-                    : (playlists.find(p => p.id === selectedPlaylistId)?.name || 'Playlist')}
-                </h2>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                  <h2 className="text-3xl font-bold">
+                    {selectedPlaylistId === 'all'
+                      ? 'All Songs'
+                      : (playlists.find(p => p.id === selectedPlaylistId)?.name || 'Playlist')}
+                  </h2>
+                  <Button
+                    variant="primary"
+                    className="flex items-center gap-2 self-start"
+                    onClick={() => {
+                      const filtered = getSortedTracksForPlaylist(selectedPlaylistId)
+                        .filter(track => {
+                          if (!playlistSearchQuery) return true;
+                          const q = playlistSearchQuery.toLowerCase();
+                          return (
+                            (track.title || '').toLowerCase().includes(q) ||
+                            (track.artist || '').toLowerCase().includes(q) ||
+                            (track.album || '').toLowerCase().includes(q)
+                          );
+                        });
+
+                      if (filtered.length > 0) {
+                        const randomTrack = filtered[Math.floor(Math.random() * filtered.length)];
+                        const contextIds = filtered.map(t => t.id);
+                        const name = selectedPlaylistId === 'all'
+                          ? 'All Songs'
+                          : (playlists.find(p => p.id === selectedPlaylistId)?.name || 'Playlist');
+
+                        playInContext(randomTrack.id, contextIds, name);
+
+                        // Also ensure shuffle mode is on if they clicked Shuffle Play
+                        setPlayerState(prev => ({ ...prev, shuffleMode: ShuffleMode.TRUE }));
+                      }
+                    }}
+                  >
+                    <Play size={20} fill="currentColor" />
+                    Shuffle Play
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+                  <div className="relative flex-1 md:flex-none">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-textSub" size={16} />
                     <input
                       type="text"
                       placeholder="Filter tracks..."
                       value={playlistSearchQuery}
                       onChange={(e) => setPlaylistSearchQuery(e.target.value)}
-                      className="bg-surface text-sm text-textMain border border-divider rounded-md pl-8 pr-3 py-1 focus:outline-none focus:border-primary w-40 sm:w-64"
+                      className="bg-surface text-sm text-textMain border border-divider rounded-md pl-8 pr-3 py-1 focus:outline-none focus:border-primary w-full md:w-64"
                     />
                   </div>
                   <select
