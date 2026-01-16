@@ -50,7 +50,7 @@ export function MobileTrackRow(props: {
         <div className="text-xs text-textSub truncate">{track.artist}</div>
       </button>
 
-      <div className="text-[11px] text-textSub font-mono">
+      <div className="hidden sm:block text-[11px] text-textSub font-mono">
         {track.duration ? formatTime(track.duration) : '--:--'}
       </div>
 

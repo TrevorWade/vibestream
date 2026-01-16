@@ -92,7 +92,6 @@ const TrackRow: React.FC<TrackRowProps> = ({
       onClick={onPlay}
       className={`group flex items-center gap-4 p-2 rounded-md hover:bg-white/10 cursor-pointer ${isCurrent ? 'text-secondary' : 'text-textSub'}`}
     >
-      <span className="w-6 text-center text-sm">{isCurrent ? <Music size={16} className="animate-pulse" /> : index + 1}</span>
       <div className="w-10 h-10 rounded-sm overflow-hidden bg-surfaceHighlight flex-shrink-0">
         {track.coverArt ? (
           <img src={track.coverArt} alt={track.title} className="w-10 h-10 object-cover" />
@@ -107,7 +106,7 @@ const TrackRow: React.FC<TrackRowProps> = ({
         <div className="text-xs truncate group-hover:text-white">{track.artist}</div>
       </div>
       <div className="hidden sm:block text-xs text-textSub w-24 text-right">Plays: {track.playCount}</div>
-      <div className="text-xs font-mono">{track.duration ? formatTime(track.duration) : '--:--'}</div>
+      <div className="hidden sm:block text-xs font-mono">{track.duration ? formatTime(track.duration) : '--:--'}</div>
       <div className="relative" onClick={(e) => e.stopPropagation()} ref={menuRef}>
         <Button variant="ghost" size="icon" onClick={() => setMenuOpen(o => !o)} title="More options">
           <MoreVertical size={18} />
