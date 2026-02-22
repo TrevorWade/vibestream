@@ -171,7 +171,10 @@ const TrackRow: React.FC<TrackRowProps> = ({
 const App: React.FC = () => {
   // --- STATE ---
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [playlists, setPlaylists] = useState<Playlist[]>(DEFAULT_PLAYLISTS);
+  // Ensure legacy playlists are gone
+  const [playlists, setPlaylists] = useState<Playlist[]>(() => {
+    return (DEFAULT_PLAYLISTS as Playlist[]).filter(p => !['favorites', 'heavy-rotation'].includes(p.id));
+  });
   const [activeTab, setActiveTab] = useState<'home' | 'search' | 'library' | 'audiobooks'>('home');
   const [activeBook, setActiveBook] = useState<Audiobook | null>(null);
   const [isAudiobookExpanded, setIsAudiobookExpanded] = useState(false);
@@ -187,6 +190,17 @@ const App: React.FC = () => {
   useEffect(() => {
     setPlaylistSearchQuery('');
   }, [selectedPlaylistId]);
+
+  // Force cleanup of legacy playlists if they exist in state
+  useEffect(() => {
+    setPlaylists(prev => {
+      const hasLegacy = prev.some(p => ['favorites', 'heavy-rotation', 'all'].includes(p.id));
+      if (hasLegacy) {
+        return prev.filter(p => !['favorites', 'heavy-rotation', 'all'].includes(p.id));
+      }
+      return prev;
+    });
+  }, []);
 
   const [playerState, setPlayerState] = useState<PlayerState>({
     currentTrackId: null,
@@ -848,14 +862,27 @@ const App: React.FC = () => {
     const lyricFiles = files.filter(f => f.name.endsWith('.lrc') || f.name.endsWith('.txt'));
 
     // Try to infer the folder name for a future playlist (only for folder uploads).
-    // We inspect the first path segment of webkitRelativePath across files.
+    // We inspect the path segments, ignoring generic roots like "tree" or "primary".
     const firstSegments = new Set<string>();
     if (options?.isFolderUpload) {
       for (const f of audioFiles) {
         const rel = (f as any).webkitRelativePath as string | undefined;
         if (rel && rel.includes('/')) {
-          const seg = rel.split('/')[0];
-          if (seg) firstSegments.add(seg);
+          const parts = rel.split('/');
+          // Remove the filename (last part)
+          if (parts.length > 0) parts.pop();
+
+          if (parts.length > 0) {
+            // Check if first part is a generic root
+            const first = parts[0].toLowerCase();
+            if ((first === 'tree' || first === 'primary') && parts.length > 1) {
+              parts.shift(); // Remove generic root
+            }
+            // Use the first meaningful segment
+            if (parts.length > 0) {
+              firstSegments.add(parts[0]);
+            }
+          }
         }
       }
     }
@@ -965,10 +992,14 @@ const App: React.FC = () => {
       let playlistName: string | null = null;
       if (firstSegments.size === 1) {
         playlistName = Array.from(firstSegments)[0];
-      } else {
+      }
+
+      // Only prompt if ambiguous or empty
+      if (!playlistName) {
         const defaultName = firstSegments.size > 1
           ? `Imported (${Array.from(firstSegments).slice(0, 2).join(', ')}${firstSegments.size > 2 ? ', …' : ''})`
           : 'Imported Folder';
+
         const input = window.prompt('Name for new playlist', defaultName);
         if (input && input.trim()) {
           playlistName = input.trim();
@@ -1165,7 +1196,7 @@ const App: React.FC = () => {
 
               {/* Featured Playlists Grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {playlists.concat([{ id: 'all', name: 'All Songs', trackIds: [] } as Playlist]).map((pl) => (
+                {playlists.map((pl) => (
                   <div
                     key={pl.id}
                     className="group bg-surface/80 hover:bg-surfaceHighlight transition-colors rounded-md overflow-hidden flex items-center gap-4 pr-4 cursor-pointer"
@@ -1605,7 +1636,14 @@ const App: React.FC = () => {
                 onClick={async () => {
                   const handle = await pickDirectory();
                   if (!handle) return;
-                  const name = handle.name || 'New Playlist';
+                  let name = handle.name || 'New Playlist';
+
+                  // Fix for issue where some contexts return "tree" as the folder name
+                  if (name.toLowerCase() === 'tree') {
+                    const input = window.prompt('Importing folder. Please name this playlist:', 'New Playlist');
+                    if (!input) return; // cancelled
+                    name = input.trim() || 'New Playlist';
+                  }
                   const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}`;
                   setPlaylists(prev => [...prev, { id, name, trackIds: [] }]);
                   await saveSource(id, name, handle);

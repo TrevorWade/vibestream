@@ -2,10 +2,7 @@ import { FolderHeart, ListMusic, Music2 } from 'lucide-react';
 
 export const APP_NAME = "VibeStream";
 
-export const DEFAULT_PLAYLISTS = [
-  { id: 'favorites', name: 'Favorites', trackIds: [] },
-  { id: 'heavy-rotation', name: 'On Repeat', trackIds: [] },
-];
+export const DEFAULT_PLAYLISTS = [];
 
 export const formatTime = (seconds: number): string => {
   if (!seconds || isNaN(seconds)) return '0:00';

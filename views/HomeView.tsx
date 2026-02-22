@@ -58,7 +58,6 @@ export function HomeView(props: {
         chips={[
           { value: 'all', label: 'All' },
           { value: 'music', label: 'Music' },
-          { value: 'podcasts', label: 'Podcasts' },
           { value: 'audiobooks', label: 'Audiobooks' },
         ]}
       />
