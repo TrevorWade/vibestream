@@ -1,48 +1,91 @@
+# 🎵 VibeStream
+
+**Elevate your local music and audiobook experience with AI-powered insights.**
+
+VibeStream is a feature-rich, privacy-first local media player designed for music lovers and audiobook enthusiasts. With a sleek, Spotify-inspired interface and cutting-edge Google Gemini AI integration, it transforms your local library into a dynamic, insightful listening experience.
+
+---
+
+## ✨ Key Features
+
+### 🎧 The Ultimate Local Player
+*   **Spotify-Inspired UI:** A premium, high-performance dark theme designed for both desktop and mobile.
+*   **Smart Shuffle:** Beyond random—use our weight-based logic to prioritize tracks you love or rediscover hidden gems.
+*   **Privacy-First:** Your data stays on your device. We use browser-native IndexedDB to manage your library.
+
+### 🤖 AI-Powered "Vibes"
+*   **Gemini Integration:** Instantly generate poetic vibe descriptions and deep-dive lyrics analysis for any track in your library.
+*   **Smart Playlists:** (Coming Soon) AI-curated playlists based on the mood of your songs.
+
+### 📚 Full Audiobook Suite
+*   **Chapter Support:** Full support for M4B and MP4 chapters with easy navigation.
+*   **Persistent Bookmarks:** Never lose your place again. Bookmarks and progress are saved automatically.
+*   **Speed Control:** Adjustable playback speed for the perfect listening pace.
+
+### 📱 Truly Cross-Platform
+*   **Native Android:** Built with Capacitor for a seamless mobile experience.
+*   **Responsive Web:** Full functionality on desktop browsers with optimized layouts.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+*   [Node.js](https://nodejs.org/) (Latest LTS)
+*   [Gemini API Key](https://aistudio.google.com/app/apikey) (For AI features)
+
+### Local Development
+1.  **Clone and Install:**
+    ```bash
+    npm install
+    ```
+2.  **Configure Environment:**
+    Copy `.env.example` to `.env.local` and add your `GEMINI_API_KEY`.
+3.  **Run Dev Server:**
+    ```bash
+    npm run dev
+    ```
+
+---
+
+## 📱 Mobile Deployment (Android)
+
+VibeStream uses **Capacitor** to run as a native Android app.
+
+1.  **Build Web Bundle:**
+    ```bash
+    npm run cap:build
+    ```
+2.  **Sync to Android Project:**
+    ```bash
+    npm run cap:sync
+    ```
+3.  **Open in Android Studio:**
+    ```bash
+    npm run cap:open:android
+    ```
+    *Build and run from Android Studio onto your device.*
+
+---
+
+## 🛠 Tech Stack
+
+*   **Frontend:** React, Vite, TailwindCSS, Lucide Icons
+*   **Storage:** IndexedDB (via custom service)
+*   **AI:** Google Gemini SDK (@google/genai)
+*   **Native Bridge:** Capacitor
+*   **Metadata:** music-metadata-browser
+
+---
+
+## 🔒 Security & Privacy
+
+VibeStream is designed with security in mind:
+*   **Client-Side Only:** Your audio files are never uploaded to any server.
+*   **Secure API Handling:** API keys are never bundled; they are injected via environment variables.
+
+---
+
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+  <p>Made with ❤️ for local music collectors.</p>
 </div>
-
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/drive/1nVtRqT0F-KmHg-72jJiz0sVdNJxl_NO6
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
-
-## Build for Android
-
-1. **Install Capacitor CLI tooling** (only once): `npm install`
-2. **Generate the production web bundle** we ship to Android:
-   - `npm run cap:build`
-   - This runs `tsc && vite build` and writes the static assets to `dist`, which Capacitor hosts inside the native shell.
-3. **Sync the web output into the Android project** before opening Android Studio:
-   - `npm run cap:sync`
-   - The script runs `npx cap sync`, which copies `dist` into the native `android/app/src/main/assets` directory and updates Gradle/Capacitor metadata.
-4. **Open the Android workspace** in Android Studio:
-   - `npm run cap:open:android` (runs `npx cap open android`)
-   - Build and run the `app` module from Android Studio; connect your Android phone via USB (enable USB debugging) and choose it as the deployment target.
-5. **When you make frontend changes**:
-   - Re-run `npm run cap:build` to regenerate `dist`.
-   - Re-sync with `npm run cap:sync`.
-   - Rebuild from Android Studio (press Run or `./gradlew installDebug` in the `android` folder).
-
-### First-time setup notes
-
-- If you have not already added the Android platform, run `npx cap add android` once; Capacitor will reuse `capacitor.config.json` (see the new file at the repo root).
-- Keep Android Studio and the SDK up to date so the Gradle build succeeds.
-- For troubleshooting, open `android/app/src/main/assets/capacitor.config.json` to verify it matches `capacitor.config.ts`.
-
-### Quick dev preview on device
-
-- Run `npm run dev -- --host 0.0.0.0 --port 4173` to start the Vite dev server.
-- In Android Studio’s Run configuration, enable “Use Chrome DevTools for webview” and point the WebView at `http://<your-local-ip>:4173` if you want live reload during development (remember to keep your phone and dev machine on the same network).
