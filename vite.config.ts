@@ -23,8 +23,8 @@ export default defineConfig(({ mode }) => {
       host: true
     },
     define: {
-      // Polyfill process.env.API_KEY for the frontend
-      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+      // Polyfill process.env.GEMINI_API_KEY for the frontend
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
     }
   };
 });

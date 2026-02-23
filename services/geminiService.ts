@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 
 // Note: In a real production app, this key should be secured via backend proxy.
 // For this demo, we assume the user might provide it or it's available in env.
-const apiKey = process.env.API_KEY || ''; 
+const apiKey = process.env.GEMINI_API_KEY || '';
 
 let ai: GoogleGenAI | null = null;
 
